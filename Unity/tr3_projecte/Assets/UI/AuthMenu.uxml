@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<engine:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:engine="UnityEngine.UIElements"
+    xmlns:editor="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <engine:Style src="AuthMenu.uss" />
+
+    <engine:VisualElement class="container">
+        <!-- Auth Panel -->
+        <engine:VisualElement name="AuthPanel" class="panel">
+            <engine:Label text="TRON SNAKE" class="title" />
+            
+            <engine:TextField name="UsernameInput" text="Usuari" class="input-field" />
+            <engine:TextField name="PasswordInput" text="Contrasenya" password="true" class="input-field" />
+            
+            <engine:Button name="LoginButton" text="ENTRAR" class="btn" />
+            <engine:Button name="RegisterButton" text="REGISTRAR-SE" class="btn" />
+            
+            <engine:Label name="StatusText" text="..." class="status-label" />
+        </engine:VisualElement>
+
+        <!-- Lobby Panel -->
+        <engine:VisualElement name="LobbyPanel" class="panel" style="display: none;">
+            <engine:Label text="LOBBY" class="title" />
+            <engine:Label text="Connectat al servidor. Esperant rivals..." style="color: white; -unity-text-align: middle-center; margin-bottom: 20px;" />
+            
+            <!-- Aquí afegirem la llista de partides en el futur -->
+        </engine:VisualElement>
+    </engine:VisualElement>
+</engine:UXML>
