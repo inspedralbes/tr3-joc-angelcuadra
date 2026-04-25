@@ -49,35 +49,53 @@ public class SocketClient : MonoBehaviour
             Debug.Log("Socket.IO Connectat!");
         };
 
-        // Escoltar esdeveniments
         socket.On("matchesUpdated", (response) => {
-            string data = response.GetValue<string>();
-            UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchesUpdated?.Invoke(data));
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchesUpdated?.Invoke(data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error matchesUpdated: " + ex)); }
         });
 
         socket.On("matchCreated", (response) => {
-            string data = response.GetValue<string>();
-            UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchCreated?.Invoke(data));
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchCreated?.Invoke(data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error matchCreated: " + ex)); }
         });
 
         socket.On("matchStarted", (response) => {
-            string data = response.GetValue<string>();
-            UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchStarted?.Invoke(data));
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchStarted?.Invoke(data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error matchStarted: " + ex)); }
         });
 
         socket.On("playerJoined", (response) => {
-            string data = response.GetValue<string>();
-            UnityMainThreadDispatcher.Instance().Enqueue(() => OnPlayerJoined?.Invoke(data));
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => OnPlayerJoined?.Invoke(data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error playerJoined: " + ex)); }
         });
 
         socket.On("opponentMoved", (response) => {
-            string data = response.GetValue<string>();
-            UnityMainThreadDispatcher.Instance().Enqueue(() => OnOpponentMoved?.Invoke(data));
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => OnOpponentMoved?.Invoke(data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error opponentMoved: " + ex)); }
         });
 
         socket.On("matchEnded", (response) => {
-            string data = response.GetValue<string>();
-            UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchEnded?.Invoke(data));
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchEnded?.Invoke(data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error matchEnded: " + ex)); }
+        });
+
+        socket.On("error", (response) => {
+            try {
+                string data = response.GetValue<string>();
+                UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error del servidor: " + data));
+            } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error en error callback: " + ex)); }
         });
 
         socket.Connect();

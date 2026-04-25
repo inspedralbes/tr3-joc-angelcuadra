@@ -64,3 +64,7 @@ sysinfo.txt
 # === OS Files ===
 .DS_Store
 Thumbs.db
+
+# === ML-Agents ===
+mlagents_env/
+Unity/results/

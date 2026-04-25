@@ -8,7 +8,7 @@ module.exports = (io) => {
     // Unir-se al Lobby (per rebre llista de partides)
     socket.on('joinLobby', () => {
       socket.join('lobby');
-      io.to('lobby').emit('matchesUpdated', matchRepository.getWaitingMatches());
+      io.to('lobby').emit('matchesUpdated', JSON.stringify(matchRepository.getWaitingMatches()));
     });
 
     // Crear una nova partida
@@ -17,27 +17,33 @@ module.exports = (io) => {
       socket.join(`match_${match.id}`);
       
       // Actualitzar lobby
-      io.to('lobby').emit('matchesUpdated', matchRepository.getWaitingMatches());
+      io.to('lobby').emit('matchesUpdated', JSON.stringify(matchRepository.getWaitingMatches()));
       
       // Confirmar al host
-      socket.emit('matchCreated', match);
+      socket.emit('matchCreated', JSON.stringify(match));
     });
 
     // Unir-se a una partida existent
     socket.on('joinMatch', ({ matchId, playerId }) => {
-      const success = matchRepository.addPlayerToMatch(matchId, playerId);
+      console.log(`Peticio de joinMatch rebuda: matchId=${matchId}, playerId=${playerId}`);
+      const mId = Number(matchId);
+      const success = matchRepository.addPlayerToMatch(mId, playerId);
+      console.log(`Resultat addPlayerToMatch: ${success}`);
+
       if (success) {
-        socket.join(`match_${matchId}`);
-        const match = matchRepository.getMatch(matchId);
+        socket.join(`match_${mId}`);
+        const match = matchRepository.getMatch(mId);
         
         // Notificar a la sala
-        io.to(`match_${matchId}`).emit('playerJoined', match);
+        io.to(`match_${mId}`).emit('playerJoined', JSON.stringify(match));
         
         // Si ja som 2 jugadors, iniciem
+        console.log(`Jugadors a la partida ${mId}: ${match.players.length}`);
         if (match.players.length >= 2) {
-          matchRepository.updateMatchStatus(matchId, 'playing');
-          io.to(`match_${matchId}`).emit('matchStarted', match);
-          io.to('lobby').emit('matchesUpdated', matchRepository.getWaitingMatches()); // Esborrar del lobby
+          console.log(`Iniciant partida ${mId}!`);
+          matchRepository.updateMatchStatus(mId, 'playing');
+          io.to(`match_${mId}`).emit('matchStarted', JSON.stringify(match));
+          io.to('lobby').emit('matchesUpdated', JSON.stringify(matchRepository.getWaitingMatches())); // Esborrar del lobby
         }
       } else {
         socket.emit('error', { message: 'No s\'ha pogut unir a la partida' });
@@ -47,11 +53,11 @@ module.exports = (io) => {
     // Rebre moviment (Tron/Snake)
     socket.on('playerMove', ({ matchId, playerId, position, direction }) => {
       // Reenviar a la resta de jugadors de la sala (menys a l'emissor)
-      socket.to(`match_${matchId}`).emit('opponentMoved', {
+      socket.to(`match_${matchId}`).emit('opponentMoved', JSON.stringify({
         playerId,
         position,
         direction
-      });
+      }));
     });
 
     // Rebre col·lisió (Fi del joc)
@@ -69,10 +75,10 @@ module.exports = (io) => {
           userRepository.updateStats(winnerId, true);
         }
 
-        io.to(`match_${matchId}`).emit('matchEnded', {
+        io.to(`match_${matchId}`).emit('matchEnded', JSON.stringify({
           winnerId,
           loserId
-        });
+        }));
       }
     });
 

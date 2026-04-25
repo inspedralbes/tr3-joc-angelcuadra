@@ -11,11 +11,18 @@ public class UnityMainThreadDispatcher : MonoBehaviour
     {
         if (_instance == null)
         {
-            var obj = new GameObject("UnityMainThreadDispatcher");
-            _instance = obj.AddComponent<UnityMainThreadDispatcher>();
-            DontDestroyOnLoad(obj);
+            Debug.LogError("UnityMainThreadDispatcher no s'ha inicialitzat al Main Thread!");
         }
         return _instance;
+    }
+
+    private void Awake()
+    {
+        if (_instance == null)
+        {
+            _instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
     }
 
     public void Update()

@@ -15,35 +15,61 @@ public class AuthUI : MonoBehaviour
     private Button registerButton;
     private Label statusText;
 
+    // Elements del Lobby
+    private Button createMatchButton;
+    private Button joinMatchButton;
+    private Button playAiButton;
+    private Label lobbyStatusText;
+
     private void OnEnable()
     {
         uiDocument = GetComponent<UIDocument>();
         var root = uiDocument.rootVisualElement;
 
-        // Referències als panells
         authPanel = root.Q<VisualElement>("AuthPanel");
         lobbyPanel = root.Q<VisualElement>("LobbyPanel");
 
-        // Referències als inputs i botons
         usernameInput = root.Q<TextField>("UsernameInput");
         passwordInput = root.Q<TextField>("PasswordInput");
         loginButton = root.Q<Button>("LoginButton");
         registerButton = root.Q<Button>("RegisterButton");
         statusText = root.Q<Label>("StatusText");
 
-        // Afegim els esdeveniments
+        createMatchButton = root.Q<Button>("CreateMatchButton");
+        joinMatchButton = root.Q<Button>("JoinMatchButton");
+        playAiButton = root.Q<Button>("PlayAiButton");
+        lobbyStatusText = root.Q<Label>("LobbyStatusText");
+
         loginButton.clicked += OnLoginClicked;
         registerButton.clicked += OnRegisterClicked;
+        
+        createMatchButton.clicked += OnCreateMatchClicked;
+        joinMatchButton.clicked += OnJoinMatchClicked;
+        playAiButton.clicked += OnPlayAiClicked;
 
-        // Mostrar panell d'autenticació per defecte
         ShowAuthPanel();
+        
+        // Ens subscrivim a l'inici del joc per amagar la UI
+        if (SocketClient.Instance != null)
+            SocketClient.Instance.OnMatchStarted += HandleMatchStarted;
     }
 
     private void OnDisable()
     {
-        // És bona pràctica desvincular els esdeveniments
         loginButton.clicked -= OnLoginClicked;
         registerButton.clicked -= OnRegisterClicked;
+
+        createMatchButton.clicked -= OnCreateMatchClicked;
+        joinMatchButton.clicked -= OnJoinMatchClicked;
+        playAiButton.clicked -= OnPlayAiClicked;
+        
+        if (SocketClient.Instance != null)
+            SocketClient.Instance.OnMatchStarted -= HandleMatchStarted;
+    }
+
+    private void HandleMatchStarted(string data)
+    {
+        uiDocument.rootVisualElement.style.display = DisplayStyle.None;
     }
 
     private void OnLoginClicked()
@@ -114,7 +140,24 @@ public class AuthUI : MonoBehaviour
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.Flex;
         
-        // Un cop autenticats, connectem els WebSockets
         SocketClient.Instance.Connect();
+    }
+
+    private void OnCreateMatchClicked()
+    {
+        lobbyStatusText.text = "Creant partida...";
+        SocketClient.Instance.CreateMatch("Sala Tron");
+        lobbyStatusText.text = "Partida creada! Esperant un rival...";
+    }
+
+    private void OnJoinMatchClicked()
+    {
+        lobbyStatusText.text = "Unint-se a la partida...";
+        SocketClient.Instance.JoinMatch(1);
+    }
+
+    private void OnPlayAiClicked()
+    {
+        lobbyStatusText.text = "Això ho programarem a la Fase 5!";
     }
 }

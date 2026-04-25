@@ -24,9 +24,11 @@
         <!-- Lobby Panel -->
         <engine:VisualElement name="LobbyPanel" class="panel" style="display: none;">
             <engine:Label text="LOBBY" class="title" />
-            <engine:Label text="Connectat al servidor. Esperant rivals..." style="color: white; -unity-text-align: middle-center; margin-bottom: 20px;" />
+            <engine:Label name="LobbyStatusText" text="Connectat al servidor. Escull una opció:" style="color: white; -unity-text-align: middle-center; margin-bottom: 20px;" />
             
-            <!-- Aquí afegirem la llista de partides en el futur -->
+            <engine:Button name="CreateMatchButton" text="CREAR PARTIDA (Host)" class="btn" />
+            <engine:Button name="JoinMatchButton" text="UNIR-SE (Client)" class="btn" />
+            <engine:Button name="PlayAiButton" text="JUGAR CONTRA IA" class="btn" style="background-color: rgb(150, 0, 150); border-color: rgb(255, 0, 255);" />
         </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>
