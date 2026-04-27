@@ -1,0 +1,65 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project:/Assets/UI/AuthStyles.uss" />
+    
+    <ui:VisualElement name="MainContainer" class="main-container">
+        <!-- Pantalla de Login/Registre -->
+        <ui:VisualElement name="AuthPanel" class="panel glass">
+            <ui:Label text="TRON SNAKE" class="title neon-text" />
+            <ui:Label text="INICI DE SESSIÓ" class="subtitle" />
+            
+            <ui:TextField name="UsernameInput" label="Usuari" class="custom-input" />
+            <ui:TextField name="PasswordInput" label="Contrasenya" password="true" class="custom-input" />
+            
+            <ui:VisualElement class="button-row">
+                <ui:Button name="LoginButton" text="ENTRAR" class="btn btn-primary" />
+                <ui:Button name="RegisterButton" text="REGISTRE" class="btn btn-secondary" />
+            </ui:VisualElement>
+            
+            <ui:Label name="StatusText" text="" class="status-text" />
+        </ui:VisualElement>
+
+        <!-- Pantalla de Lobby -->
+        <ui:VisualElement name="LobbyPanel" class="panel glass" style="display: none;">
+            <ui:VisualElement class="header-row" style="flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+                <ui:Label text="LOBBY PRINCIPAL" class="title neon-text-blue" style="margin-bottom: 0;" />
+                <ui:VisualElement name="UserStats" class="stats-box" style="flex-direction: row; padding: 10px 20px;">
+                    <ui:Label name="UserWinsLabel" text="Wins: 0" class="stat-text" style="margin-right: 15px;" />
+                    <ui:Label name="UserCoinsLabel" text="Monedes: 0" class="stat-text" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement style="height: 2px; background-color: rgba(255,255,255,0.05); margin-bottom: 20px;" />
+
+            <ui:Label text="Tria el teu color de neó:" class="subtitle" />
+            <ui:VisualElement name="ColorContainer" class="color-row">
+                <ui:Button name="ColorCyan" class="color-btn cyan-bg active-border" />
+                <ui:Button name="ColorYellow" class="color-btn yellow-bg" />
+                <ui:Button name="ColorMagenta" class="color-btn magenta-bg" />
+                <ui:Button name="ColorGreen" class="color-btn green-bg" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="lobby-content">
+                <ui:VisualElement class="matchmaking-section">
+                    <ui:Label text="PARTIDES ACTIVES" class="subtitle" />
+                    <ui:ScrollView name="MatchList" class="match-list-scroll" />
+                    <ui:Button name="CreateMatchButton" text="+ CREAR NOVA SALA" class="btn btn-neon" />
+                </ui:VisualElement>
+                
+                <ui:VisualElement class="solo-section">
+                    <ui:Label text="MODES SOLS" class="subtitle" />
+                    <ui:Button name="PlayAiButton" text="VS INTEL·LIGÈNCIA ARTIFICIAL" class="btn btn-ai" />
+                    <ui:Button name="SoloModeButton" text="RECOLLIR MONEDES" class="btn btn-solo" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:Label name="LobbyStatusText" text="Benvingut al futur" class="status-text" />
+        </ui:VisualElement>
+
+        <!-- Pantalla de Game Over -->
+        <ui:VisualElement name="GameOverPanel" class="panel glass" style="display: none;">
+            <ui:Label text="FI DE LA PARTIDA" class="title neon-text-red" />
+            <ui:Label name="WinnerText" text="HAS GUANYAT!" class="winner-text" />
+            <ui:Button name="ReturnLobbyButton" text="TORNAR AL LOBBY" class="btn btn-primary" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
