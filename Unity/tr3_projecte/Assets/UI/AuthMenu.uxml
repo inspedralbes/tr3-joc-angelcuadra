@@ -24,11 +24,26 @@
         <!-- Lobby Panel -->
         <engine:VisualElement name="LobbyPanel" class="panel" style="display: none;">
             <engine:Label text="LOBBY" class="title" />
+            
+            <engine:Label text="ESCULL EL TEU COLOR:" style="color: white; -unity-font-style: bold; margin-bottom: 10px;" />
+            <engine:VisualElement name="ColorContainer" style="flex-direction: row; justify-content: space-around; margin-bottom: 20px;">
+                <engine:Button name="ColorCyan" class="color-btn" style="background-color: cyan; width: 40px; height: 40px; border-radius: 20px;" />
+                <engine:Button name="ColorYellow" class="color-btn" style="background-color: yellow; width: 40px; height: 40px; border-radius: 20px;" />
+                <engine:Button name="ColorMagenta" class="color-btn" style="background-color: magenta; width: 40px; height: 40px; border-radius: 20px;" />
+                <engine:Button name="ColorGreen" class="color-btn" style="background-color: lime; width: 40px; height: 40px; border-radius: 20px;" />
+            </engine:VisualElement>
+
             <engine:Label name="LobbyStatusText" text="Connectat al servidor. Escull una opció:" style="color: white; -unity-text-align: middle-center; margin-bottom: 20px;" />
             
             <engine:Button name="CreateMatchButton" text="CREAR PARTIDA (Host)" class="btn" />
             <engine:Button name="JoinMatchButton" text="UNIR-SE (Client)" class="btn" />
             <engine:Button name="PlayAiButton" text="JUGAR CONTRA IA" class="btn" style="background-color: rgb(150, 0, 150); border-color: rgb(255, 0, 255);" />
+        </engine:VisualElement>
+        <!-- GameOver Panel -->
+        <engine:VisualElement name="GameOverPanel" class="panel" style="display: none;">
+            <engine:Label text="PARTIDA FINALITZADA" class="title" />
+            <engine:Label name="WinnerText" text="Ha guanyat el jugador X" style="color: cyan; -unity-text-align: middle-center; margin-bottom: 20px; font-size: 20px;" />
+            <engine:Button name="ReturnLobbyButton" text="TORNAR AL LOBBY" class="btn" style="background-color: rgb(0, 150, 0);" />
         </engine:VisualElement>
     </engine:VisualElement>
 </engine:UXML>

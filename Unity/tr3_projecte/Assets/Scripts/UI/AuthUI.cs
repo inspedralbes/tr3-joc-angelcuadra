@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 public class AuthUI : MonoBehaviour
 {
+    public static AuthUI Instance { get; private set; }
     private UIDocument uiDocument;
     
     // Elements de la UI
@@ -20,6 +22,19 @@ public class AuthUI : MonoBehaviour
     private Button joinMatchButton;
     private Button playAiButton;
     private Label lobbyStatusText;
+
+    // Elements de Game Over
+    private VisualElement gameOverPanel;
+    private Label winnerText;
+    private Button returnLobbyButton;
+
+    private Color selectedColor = Color.cyan;
+    private List<Button> colorButtons = new List<Button>();
+
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     private void OnEnable()
     {
@@ -46,6 +61,17 @@ public class AuthUI : MonoBehaviour
         createMatchButton.clicked += OnCreateMatchClicked;
         joinMatchButton.clicked += OnJoinMatchClicked;
         playAiButton.clicked += OnPlayAiClicked;
+
+        gameOverPanel = root.Q<VisualElement>("GameOverPanel");
+        winnerText = root.Q<Label>("WinnerText");
+        returnLobbyButton = root.Q<Button>("ReturnLobbyButton");
+        returnLobbyButton.clicked += OnReturnLobbyClicked;
+
+        // Colors
+        SetupColorButton(root, "ColorCyan", Color.cyan);
+        SetupColorButton(root, "ColorYellow", Color.yellow);
+        SetupColorButton(root, "ColorMagenta", Color.magenta);
+        SetupColorButton(root, "ColorGreen", Color.green);
 
         ShowAuthPanel();
         
@@ -158,6 +184,48 @@ public class AuthUI : MonoBehaviour
 
     private void OnPlayAiClicked()
     {
-        lobbyStatusText.text = "Això ho programarem a la Fase 5!";
+        lobbyStatusText.text = "Iniciant partida contra la CPU...";
+        uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        GameManager.Instance.StartOfflineAiMatch(selectedColor);
+    }
+
+    private void SetupColorButton(VisualElement root, string name, Color color)
+    {
+        Button btn = root.Q<Button>(name);
+        if (btn != null)
+        {
+            colorButtons.Add(btn);
+            btn.clicked += () => 
+            {
+                selectedColor = color;
+                // Feedback visual: opacitat
+                foreach (var b in colorButtons) b.style.opacity = 0.5f;
+                btn.style.opacity = 1.0f;
+                lobbyStatusText.text = "Color seleccionat!";
+            };
+        }
+    }
+
+    public Color GetSelectedColor()
+    {
+        return selectedColor;
+    }
+
+    public void ShowGameOver(string winnerMessage)
+    {
+        uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
+        authPanel.style.display = DisplayStyle.None;
+        lobbyPanel.style.display = DisplayStyle.None;
+        gameOverPanel.style.display = DisplayStyle.Flex;
+        winnerText.text = winnerMessage;
+    }
+
+    private void OnReturnLobbyClicked()
+    {
+        gameOverPanel.style.display = DisplayStyle.None;
+        ShowLobbyPanel();
+        
+        // Netegem el joc vell
+        GameManager.Instance.CleanCurrentMatch();
     }
 }

@@ -5,6 +5,7 @@ public class PlayerController : MonoBehaviour
 {
     public float speed = 10f;
     public GameObject wallPrefab;
+    public float wallThickness = 0.5f;
     
     // Variables de xarxa
     public bool isLocalPlayer = false;
@@ -19,6 +20,7 @@ public class PlayerController : MonoBehaviour
     private List<GameObject> myWalls = new List<GameObject>();
     private float gracePeriod = 0.5f;
     private MotoAgent agentRef;
+    private Color myColor = Color.white;
 
     private void Awake()
     {
@@ -27,7 +29,14 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        // Totes dues motos (local i remota) comencen a deixar l'estela
+        // Forçar direcció inicial a la dreta
+        if (currentDirection == Vector2.zero || currentDirection == Vector2.up)
+        {
+            currentDirection = Vector2.right;
+            nextDirection = Vector2.right;
+        }
+        
+        Debug.Log($"[START] Moto {playerId} | Local: {isLocalPlayer} | AI: {agentRef != null} | Training: {isTrainingMode}");
         SpawnWall();
     }
 
@@ -35,18 +44,23 @@ public class PlayerController : MonoBehaviour
     {
         if (gracePeriod > 0) gracePeriod -= Time.deltaTime;
 
-        if (isTrainingMode)
+        // CAS 1: JUGADOR LOCAL
+        if (isLocalPlayer)
         {
+            if (!isTrainingMode) HandleInput();
+            
+            ApplyDirection();
             MovePlayer();
             UpdateWall();
-            return;
         }
-
-        if (!isLocalPlayer) return;
-
-        HandleInput();
-        MovePlayer();
-        UpdateWall();
+        // CAS 2: IA (Inference o Training)
+        else if (agentRef != null)
+        {
+            ApplyDirection();
+            MovePlayer();
+            UpdateWall();
+        }
+        // CAS 3: JUGADOR REMOT (Xarxa) -> Es mou a FixedUpdate o UpdateRemoteTransform
     }
 
     private void HandleInput()
@@ -55,9 +69,15 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.DownArrow) && currentDirection != Vector2.up) nextDirection = Vector2.down;
         else if (Input.GetKeyDown(KeyCode.LeftArrow) && currentDirection != Vector2.right) nextDirection = Vector2.left;
         else if (Input.GetKeyDown(KeyCode.RightArrow) && currentDirection != Vector2.left) nextDirection = Vector2.right;
+    }
 
+    private void ApplyDirection()
+    {
         if (nextDirection != currentDirection)
         {
+            // Primer, tanquem el mur actual exactament on som ara abans de girar
+            UpdateWall();
+
             currentDirection = nextDirection;
             
             if (currentDirection == Vector2.up) transform.rotation = Quaternion.Euler(0, 0, 0);
@@ -66,7 +86,11 @@ public class PlayerController : MonoBehaviour
             else if (currentDirection == Vector2.right) transform.rotation = Quaternion.Euler(0, 0, -90);
 
             SpawnWall();
-            SocketClient.Instance.SendMove(GameManager.Instance.currentMatchId, transform.position, currentDirection);
+            
+            if (!isTrainingMode && isLocalPlayer)
+            {
+                SocketClient.Instance.SendMove(GameManager.Instance.currentMatchId, transform.position, currentDirection);
+            }
         }
     }
 
@@ -80,6 +104,11 @@ public class PlayerController : MonoBehaviour
         lastWallEnd = transform.position;
         // Parentem el mur al pare (ex: TrainingArena) perquè no quedi suelto
         GameObject wall = Instantiate(wallPrefab, transform.position, Quaternion.identity, transform.parent);
+        wall.tag = "Wall"; // SEGURETAT: Ens assegurem que tingui el Tag per a la IA
+        
+        // Apliquem el color al mur
+        wall.GetComponent<SpriteRenderer>().color = myColor;
+        
         wallCollider = wall.GetComponent<Collider2D>();
         myWalls.Add(wall);
     }
@@ -89,26 +118,33 @@ public class PlayerController : MonoBehaviour
         if (wallCollider != null)
         {
             Vector2 currentPos = transform.position;
-            Vector2 center = (lastWallEnd + currentPos) / 2f;
-            wallCollider.transform.position = center;
-            
             float dist = Vector2.Distance(lastWallEnd, currentPos);
             
-            if (currentDirection.x != 0) wallCollider.transform.localScale = new Vector3(dist, 0.5f, 1f);
-            else wallCollider.transform.localScale = new Vector3(0.5f, dist, 1f);
+            // Posicionem el centre exactament a la meitat del camí recorregut
+            wallCollider.transform.position = (lastWallEnd + currentPos) / 2f;
+            
+            // Calculem l'angle segons la direcció actual
+            float angle = Mathf.Atan2(currentDirection.y, currentDirection.x) * Mathf.Rad2Deg - 90;
+            wallCollider.transform.rotation = Quaternion.Euler(0, 0, angle);
+            
+            // Ara la Y és sempre la llargada i la X el gruix.
+            // No afegim el +0.01f per veure si així queda més net.
+            wallCollider.transform.localScale = new Vector3(wallThickness, dist, 1f);
         }
     }
 
-    private void OnTriggerEnter2D(Collider2D collision)
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        if (!isLocalPlayer && !isTrainingMode) return;
+        // Només comprovem col·lisions si som el jugador local o una IA
+        if (!isLocalPlayer && agentRef == null) return;
         if (gracePeriod > 0) return; // Invencible el primer mig segon
 
-        if (collision == wallCollider) return;
-
-        if (collision.CompareTag("Wall") || collision.CompareTag("Player"))
+        if (other.CompareTag("Wall") || other.CompareTag("Player"))
         {
-            Debug.Log($"Has xocat amb: {collision.gameObject.name} (Tag: {collision.tag})");
+            // IGNORAR si és el mur que estem creant ara mateix
+            if (other == wallCollider) return;
+
+            Debug.Log("CRASH! El jugador " + playerId + " ha perdut.");
             
             if (isTrainingMode && agentRef != null)
             {
@@ -117,6 +153,7 @@ public class PlayerController : MonoBehaviour
             else
             {
                 SocketClient.Instance.SendCollision(GameManager.Instance.currentMatchId);
+                GameManager.Instance.NotifyPlayerDeath(playerId);
                 Destroy(gameObject);
             }
         }
@@ -141,7 +178,9 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!isLocalPlayer && !isTrainingMode)
+        // El FixedUpdate NOMÉS el fem servir per als jugadors remots (xarxa)
+        // per interpolar la seva posició si no som nosaltres ni una IA local.
+        if (!isLocalPlayer && agentRef == null)
         {
             MovePlayer();
             UpdateWall();
@@ -168,11 +207,22 @@ public class PlayerController : MonoBehaviour
         }
         myWalls.Clear();
 
+        if (currentDirection == Vector2.zero)
+            currentDirection = Vector2.right;
+
+        Debug.Log($"Moto {playerId} iniciada. Local: {isLocalPlayer}, Training: {isTrainingMode}");
+
         gracePeriod = 0.5f;
-        currentDirection = Vector2.up;
-        nextDirection = Vector2.up;
+        currentDirection = Vector2.right;
+        nextDirection = Vector2.right;
         transform.rotation = Quaternion.identity;
 
         SpawnWall();
+    }
+
+    public void SetColor(Color c)
+    {
+        myColor = c;
+        GetComponent<SpriteRenderer>().color = c;
     }
 }

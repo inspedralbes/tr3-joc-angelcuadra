@@ -18,12 +18,17 @@ public class MotoAgent : Agent
 
     public override void OnEpisodeBegin()
     {
-        // 1. Tornem la moto a la seva posició inicial
-        transform.localPosition = startingPos;
-        transform.localRotation = startingRot;
+        // Només fem el reset d'estat si estem entrenant.
+        // En mode Inference (joc contra CPU), el GameManager s'encarrega de l'inici.
+        if (playerController != null && playerController.isTrainingMode)
+        {
+            // 1. Tornem la moto a la seva posició inicial
+            transform.localPosition = startingPos;
+            transform.localRotation = startingRot;
 
-        // 2. Avisem al PlayerController perquè esborri les esteles velles
-        playerController.ResetForTraining();
+            // 2. Avisem al PlayerController perquè esborri les esteles velles
+            playerController.ResetForTraining();
+        }
     }
 
     public override void CollectObservations(VectorSensor sensor)
@@ -60,8 +65,15 @@ public class MotoAgent : Agent
         // Apliquem la decisió
         playerController.SetDirectionFromAI(nextDir);
 
-        // Petita recompensa per cada pas que sobreviu
-        AddReward(0.001f);
+        // Recompenses
+        if (action == 0) 
+        {
+            AddReward(0.002f); // Recompensa per anar recte
+        }
+        else 
+        {
+            AddReward(-0.001f); // Petita penalització per girar (per evitar que doni voltes sense sentit)
+        }
     }
 
     public override void Heuristic(in ActionBuffers actionsOut)
@@ -89,7 +101,16 @@ public class MotoAgent : Agent
     public void RegisterCrash()
     {
         // Quan la moto mor, rep una gran penalització
-        SetReward(-1f);
-        EndEpisode();
+        if (playerController.isTrainingMode)
+        {
+            SetReward(-1f);
+            EndEpisode();
+        }
+        else
+        {
+            // En mode normal, simplement destruïm la moto o la fem explotar
+            GameManager.Instance.NotifyPlayerDeath(playerController.playerId);
+            Destroy(gameObject, 0.1f);
+        }
     }
 }
