@@ -1,5 +1,5 @@
 const matchRepository = require('../repositories/MatchRepository');
-const userRepository = require('../repositories/UserRepository');
+const userRepository = require('../repositories/userRepository');
 
 module.exports = (io) => {
   io.on('connection', (socket) => {
@@ -13,14 +13,17 @@ module.exports = (io) => {
 
     // Crear una nova partida
     socket.on('createMatch', ({ hostId, roomName, color }) => {
+      console.log(`Peticio de createMatch rebuda de ${hostId} per la sala ${roomName}`);
       const match = matchRepository.createMatch(hostId, roomName, color);
       socket.join(`match_${match.id}`);
       
       // Actualitzar lobby
+      console.log("Actualitzant llista de partides al lobby...");
       io.to('lobby').emit('matchesUpdated', JSON.stringify(matchRepository.getWaitingMatches()));
       
       // Confirmar al host
       socket.emit('matchCreated', JSON.stringify(match));
+      console.log(`Partida creada amb ID: ${match.id}`);
     });
 
     // Unir-se a una partida existent

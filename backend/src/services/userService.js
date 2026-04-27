@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const userRepository = require('../repositories/UserRepository');
+const userRepository = require('../repositories/userRepository');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_tron_key_2026';
 
