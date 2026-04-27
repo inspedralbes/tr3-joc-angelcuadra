@@ -1,0 +1,148 @@
+.main-container {
+    flex-grow: 1;
+    background-color: #05050a;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    color: white;
+}
+
+.glass {
+    background-color: rgba(20, 20, 35, 0.8);
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+}
+
+.panel {
+    width: 800px; /* Molt més ample */
+    padding: 40px;
+    align-items: stretch;
+    transition-duration: 0.3s;
+}
+
+.neon-text {
+    font-size: 40px;
+    -unity-font-style: bold;
+    text-shadow: 0 0 10px #00ffff;
+    color: #00ffff;
+    margin-bottom: 20px;
+    -unity-text-align: middle-center;
+}
+
+.neon-text-blue { color: #0088ff; text-shadow: 0 0 10px #0088ff; -unity-text-align: middle-center; font-size: 32px; }
+.neon-text-red { color: #ff0055; text-shadow: 0 0 10px #ff0055; -unity-text-align: middle-center; font-size: 32px; }
+
+.subtitle {
+    -unity-font-style: bold;
+    margin-bottom: 15px;
+    margin-top: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    -unity-text-align: middle-left; /* Millor a l'esquerra */
+}
+
+.custom-input {
+    margin-bottom: 15px;
+    border-radius: 5px;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+.button-row {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    -unity-font-style: bold;
+    transition-duration: 0.2s;
+    margin: 5px;
+}
+
+.btn:hover {
+    scale: 1.05;
+}
+
+.btn-primary { background-color: #00ffff; color: #000; }
+.btn-secondary { background-color: #333; color: white; }
+.btn-neon { background-color: transparent; border-color: #00ff88; border-width: 2px; color: #00ff88; }
+.btn-ai { background-color: #ff8800; color: black; }
+.btn-solo { background-color: #aa00ff; color: white; }
+
+.stats-box {
+    background-color: rgba(0, 0, 0, 0.4);
+    padding: 10px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: #0088ff;
+}
+
+.stat-text {
+    font-size: 12px;
+    color: #00ffcc;
+}
+
+.color-row {
+    flex-direction: row;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.color-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 20px;
+    margin: 0 10px;
+    border-width: 2px;
+    border-color: transparent;
+}
+
+.active-border { border-color: white; scale: 1.2; }
+
+.cyan-bg { background-color: #00ffff; }
+.yellow-bg { background-color: #ffff00; }
+.magenta-bg { background-color: #ff00ff; }
+.green-bg { background-color: #00ff00; }
+
+.lobby-content {
+    flex-direction: row;
+    height: 350px; /* Més alt */
+    margin-top: 30px;
+}
+
+.matchmaking-section { 
+    flex: 1.2; 
+    padding-right: 25px; 
+    border-right-width: 1px; 
+    border-color: rgba(255,255,255,0.1); 
+}
+
+.solo-section { 
+    flex: 1; 
+    padding-left: 25px; 
+}
+
+.match-list-scroll {
+    flex-grow: 1;
+    background-color: rgba(0, 0, 0, 0.4);
+    margin-bottom: 15px;
+    border-radius: 8px;
+    padding: 10px;
+    border-width: 1px;
+    border-color: rgba(255,255,255,0.05);
+}
+
+.status-text {
+    margin-top: 20px;
+    -unity-text-align: middle-center;
+    color: #888;
+}
+
+.winner-text {
+    font-size: 24px;
+    color: white;
+    -unity-text-align: middle-center;
+    margin: 20px 0;
+}

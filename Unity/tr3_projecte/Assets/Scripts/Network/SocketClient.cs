@@ -39,14 +39,19 @@ public class SocketClient : MonoBehaviour
         {
             Query = new Dictionary<string, string>
             {
-                {"token", "UNITY" }
+                {"token", APIClient.Instance.Token }
             }
         });
         socket.JsonSerializer = new NewtonsoftJsonSerializer();
 
         socket.OnConnected += (sender, e) =>
         {
-            Debug.Log("Socket.IO Connectat!");
+            Debug.Log("<color=green>Socket.IO Connectat amb èxit!</color>");
+        };
+
+        socket.OnDisconnected += (sender, e) =>
+        {
+            Debug.LogWarning("<color=orange>Socket.IO Desconnectat!</color>");
         };
 
         socket.On("matchesUpdated", (response) => {
@@ -113,8 +118,13 @@ public class SocketClient : MonoBehaviour
     {
         if (socket != null && socket.Connected)
         {
+            Debug.Log("Enviant createMatch al servidor...");
             string colorHex = "#" + ColorUtility.ToHtmlStringRGB(color);
             socket.Emit("createMatch", new { hostId, roomName, color = colorHex });
+        }
+        else
+        {
+            Debug.LogError("No es pot crear la partida: El Socket NO està connectat!");
         }
     }
 
@@ -122,8 +132,13 @@ public class SocketClient : MonoBehaviour
     {
         if (socket != null && socket.Connected)
         {
+            Debug.Log("Enviant joinMatch al servidor per la sala: " + matchId);
             string colorHex = "#" + ColorUtility.ToHtmlStringRGB(color);
             socket.Emit("joinMatch", new { matchId, playerId, color = colorHex });
+        }
+        else
+        {
+            Debug.LogError("No es pot unir a la partida: El Socket NO està connectat!");
         }
     }
 

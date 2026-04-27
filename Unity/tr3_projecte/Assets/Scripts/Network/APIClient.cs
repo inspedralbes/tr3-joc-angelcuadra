@@ -33,6 +33,8 @@ public class UserInfo
     public string username;
     public int gamesPlayed;
     public int wins;
+    public int losses;
+    public int coinsCollected;
 }
 
 public class APIClient : MonoBehaviour

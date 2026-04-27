@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 public class MatchData
 {
     public int id;
+    public string roomName;
     public List<string> players;
     public string status;
     public string winnerId;

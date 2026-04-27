@@ -431,7 +431,7 @@ MonoBehaviour:
   motoPrefab: {fileID: 479994793877951169, guid: 847482704201419448c3e6740d680ecd, type: 3}
   aiPrefab: {fileID: 840075648518501093, guid: b809341514fc7734d859fea254a3156c, type: 3}
   coinPrefab: {fileID: 8045398247722920335, guid: f85c244d5518ba54badb197cad4d4970, type: 3}
-  coinSpawnRange: {x: 24, y: 10}
+  coinSpawnRange: {x: 10, y: 5}
   currentMatchId: 0
 --- !u!4 &1349481699
 Transform:
@@ -573,6 +573,8 @@ MonoBehaviour:
     username: 
     gamesPlayed: 0
     wins: 0
+    losses: 0
+    coinsCollected: 0
 --- !u!4 &2035492805
 Transform:
   m_ObjectHideFlags: 0
