@@ -6,9 +6,10 @@ class MatchRepository {
     this.nextId = 1;
   }
 
-  createMatch(hostId, roomName) {
+  createMatch(hostId, roomName, color) {
     const id = this.nextId++;
     const match = new Match(id, hostId, roomName);
+    if (color) match.playerColors[hostId] = color;
     this.matches.set(id, match);
     return match;
   }
@@ -25,11 +26,12 @@ class MatchRepository {
     return this.getAllMatches().filter(m => m.status === 'waiting');
   }
 
-  addPlayerToMatch(matchId, playerId) {
+  addPlayerToMatch(matchId, playerId, color) {
     const match = this.matches.get(matchId);
     if (match && match.status === 'waiting') {
       if (!match.players.includes(playerId)) {
         match.players.push(playerId);
+        if (color) match.playerColors[playerId] = color;
       }
       return true;
     }

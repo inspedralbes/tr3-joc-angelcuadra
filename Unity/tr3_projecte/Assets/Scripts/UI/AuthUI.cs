@@ -21,6 +21,7 @@ public class AuthUI : MonoBehaviour
     private Button createMatchButton;
     private Button joinMatchButton;
     private Button playAiButton;
+    private Button soloModeButton;
     private Label lobbyStatusText;
 
     // Elements de Game Over
@@ -61,6 +62,8 @@ public class AuthUI : MonoBehaviour
         createMatchButton.clicked += OnCreateMatchClicked;
         joinMatchButton.clicked += OnJoinMatchClicked;
         playAiButton.clicked += OnPlayAiClicked;
+        soloModeButton = root.Q<Button>("SoloModeButton");
+        soloModeButton.clicked += OnSoloModeClicked;
 
         gameOverPanel = root.Q<VisualElement>("GameOverPanel");
         winnerText = root.Q<Label>("WinnerText");
@@ -171,15 +174,19 @@ public class AuthUI : MonoBehaviour
 
     private void OnCreateMatchClicked()
     {
+        string roomName = "Sala de " + APIClient.Instance.CurrentUser.username;
+        string myId = APIClient.Instance.CurrentUser.id;
+        SocketClient.Instance.CreateMatch(myId, roomName, selectedColor);
         lobbyStatusText.text = "Creant partida...";
-        SocketClient.Instance.CreateMatch("Sala Tron");
-        lobbyStatusText.text = "Partida creada! Esperant un rival...";
     }
 
     private void OnJoinMatchClicked()
     {
-        lobbyStatusText.text = "Unint-se a la partida...";
-        SocketClient.Instance.JoinMatch(1);
+        // Busquem quin botó s'ha premut (o l'ID de la partida)
+        int matchId = 1; // Aquí aniria la lògica d'obtenir l'ID del botó premut
+        string myId = APIClient.Instance.CurrentUser.id;
+        SocketClient.Instance.JoinMatch(matchId, myId, selectedColor);
+        lobbyStatusText.text = "Unint-se a la partida " + matchId + "...";
     }
 
     private void OnPlayAiClicked()
@@ -187,6 +194,13 @@ public class AuthUI : MonoBehaviour
         lobbyStatusText.text = "Iniciant partida contra la CPU...";
         uiDocument.rootVisualElement.style.display = DisplayStyle.None;
         GameManager.Instance.StartOfflineAiMatch(selectedColor);
+    }
+
+    private void OnSoloModeClicked()
+    {
+        lobbyStatusText.text = "Iniciant mode individual...";
+        uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        GameManager.Instance.StartSoloMode(selectedColor);
     }
 
     private void SetupColorButton(VisualElement root, string name, Color color)

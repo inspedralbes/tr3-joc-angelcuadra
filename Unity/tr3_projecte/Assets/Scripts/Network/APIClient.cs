@@ -29,7 +29,7 @@ public class UserData
 [Serializable]
 public class UserInfo
 {
-    public int id;
+    public string id;
     public string username;
     public int gamesPlayed;
     public int wins;
@@ -39,7 +39,7 @@ public class APIClient : MonoBehaviour
 {
     public static APIClient Instance { get; private set; }
     
-    private const string API_URL = "http://localhost:3000/api/users";
+    private const string API_URL = "http://204.168.213.113:3000/api/users";
     
     [HideInInspector]
     public string Token;

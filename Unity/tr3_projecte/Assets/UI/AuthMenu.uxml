@@ -38,6 +38,7 @@
             <engine:Button name="CreateMatchButton" text="CREAR PARTIDA (Host)" class="btn" />
             <engine:Button name="JoinMatchButton" text="UNIR-SE (Client)" class="btn" />
             <engine:Button name="PlayAiButton" text="JUGAR CONTRA IA" class="btn" style="background-color: rgb(150, 0, 150); border-color: rgb(255, 0, 255);" />
+            <engine:Button name="SoloModeButton" text="MODE INDIVIDUAL (Monedes)" class="btn" style="background-color: rgb(0, 100, 200); border-color: rgb(0, 150, 255);" />
         </engine:VisualElement>
         <!-- GameOver Panel -->
         <engine:VisualElement name="GameOverPanel" class="panel" style="display: none;">

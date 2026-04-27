@@ -1,41 +1,41 @@
 const User = require('../models/User');
 
 class UserRepository {
-  constructor() {
-    this.users = new Map(); // Simula persistència en RAM
-    this.nextId = 1;
+  async findByUsername(username) {
+    return await User.findOne({ username });
   }
 
-  findByUsername(username) {
-    for (let user of this.users.values()) {
-      if (user.username === username) {
-        return user;
-      }
-    }
-    return null;
+  async findById(id) {
+    return await User.findById(id);
   }
 
-  findById(id) {
-    return this.users.get(id);
+  async create(username, password) {
+    const newUser = new User({
+      username,
+      password
+    });
+    return await newUser.save();
   }
 
-  create(username, passwordHash) {
-    const id = this.nextId++;
-    const newUser = new User(id, username, passwordHash);
-    this.users.set(id, newUser);
-    return newUser;
-  }
-
-  updateStats(id, isWin) {
-    const user = this.users.get(id);
+  async updateStats(id, isWin) {
+    const user = await User.findById(id);
     if (user) {
-      user.gamesPlayed += 1;
       if (isWin) {
         user.wins += 1;
+      } else {
+        user.losses += 1;
       }
+      await user.save();
+    }
+  }
+
+  async addCoins(id, amount) {
+    const user = await User.findById(id);
+    if (user) {
+      user.coinsCollected += amount;
+      await user.save();
     }
   }
 }
 
-// Exportem una instància única (singleton) per a fer de base de dades en memòria
 module.exports = new UserRepository();

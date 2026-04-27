@@ -7,17 +7,16 @@ using Newtonsoft.Json;
 public class MatchData
 {
     public int id;
-    public int hostId;
-    public string roomName;
-    public List<int> players;
+    public List<string> players;
     public string status;
-    public int? winnerId;
+    public string winnerId;
+    public Dictionary<string, string> playerColors;
 }
 
 [Serializable]
 public class MoveData
 {
-    public int playerId;
+    public string playerId;
     public Vector2Data position;
     public Vector2Data direction;
 }
@@ -36,11 +35,17 @@ public class GameManager : MonoBehaviour
     [Header("Prefabs")]
     public GameObject motoPrefab; // Prefab de la moto controlada pel jugador
     public GameObject aiPrefab;   // Prefab de la moto de l'ML-Agent
+    public GameObject coinPrefab; // Prefab de la moneda
+    public Vector2 coinSpawnRange = new Vector2(4f, 4f);
+
+    private int currentScore = 0;
+    private bool isSoloMode = false;
+    private CoinSpawner coinSpawner;
 
     [HideInInspector]
     public int currentMatchId;
 
-    private Dictionary<int, PlayerController> activePlayers = new Dictionary<int, PlayerController>();
+    public Dictionary<string, PlayerController> activePlayers = new Dictionary<string, PlayerController>();
 
     private void Awake()
     {
@@ -58,38 +63,46 @@ public class GameManager : MonoBehaviour
             SocketClient.Instance.OnOpponentMoved += HandleOpponentMoved;
             SocketClient.Instance.OnMatchEnded += HandleMatchEnded;
         }
+
+        coinSpawner = gameObject.AddComponent<CoinSpawner>();
+        coinSpawner.coinPrefab = coinPrefab;
+        coinSpawner.spawnRange = coinSpawnRange;
     }
 
     private void HandleMatchStarted(string matchDataJson)
     {
-        Debug.Log("Intentant iniciar partida amb dades: " + matchDataJson);
-        try
+        Debug.Log("La partida ha començat: " + matchDataJson);
+        MatchData match = JsonConvert.DeserializeObject<MatchData>(matchDataJson);
+        currentMatchId = match.id;
+        
+        string myId = APIClient.Instance.CurrentUser.id;
+
+        Vector2 pos1 = new Vector2(-4, 0);
+        Vector2 pos2 = new Vector2(4, 0);
+
+        for (int i = 0; i < match.players.Count; i++)
         {
-            MatchData match = JsonConvert.DeserializeObject<MatchData>(matchDataJson);
-            currentMatchId = match.id;
-            
-            int myId = APIClient.Instance.CurrentUser.id;
+            string pId = match.players[i];
+            bool isMe = (pId == myId);
+            Vector2 startPos = (i == 0) ? pos1 : pos2;
 
-            Vector2 pos1 = new Vector2(-4, 0);
-            Vector2 pos2 = new Vector2(4, 0);
-
-            for (int i = 0; i < match.players.Count; i++)
+            // Llegim el color que ens envia el servidor (en Hex)
+            Color playerColor = Color.cyan; // Per defecte
+            if (match.playerColors != null && match.playerColors.ContainsKey(pId))
             {
-                int pId = match.players[i];
-                bool isMe = (pId == myId);
-                Vector2 startPos = (i == 0) ? pos1 : pos2;
-                SpawnPlayer(pId, startPos, isMe, AuthUI.Instance != null ? AuthUI.Instance.GetSelectedColor() : Color.cyan);
+                ColorUtility.TryParseHtmlString(match.playerColors[pId], out playerColor);
             }
 
-            if (match.players.Count == 1)
-            {
-                Debug.Log("Iniciant partida contra la IA (ML-Agents)");
-                GameObject aiObj = Instantiate(aiPrefab, pos2, Quaternion.identity);
-            }
+            SpawnPlayer(pId, startPos, isMe, playerColor);
         }
-        catch (Exception ex)
+
+        if (match.players.Count == 1)
         {
-            Debug.LogError("Error a HandleMatchStarted: " + ex.Message + "\n" + ex.StackTrace);
+            Debug.Log("Iniciant partida contra la IA (ML-Agents)");
+            GameObject aiObj = Instantiate(aiPrefab, pos2, Quaternion.identity);
+            PlayerController aiController = aiObj.GetComponent<PlayerController>();
+            aiController.playerId = "AI";
+            activePlayers["AI"] = aiController;
         }
     }
 
@@ -112,19 +125,26 @@ public class GameManager : MonoBehaviour
         MatchData match = JsonConvert.DeserializeObject<MatchData>(endDataJson);
         
         string message = "Partida Finalitzada";
-        if (match.winnerId.HasValue)
+        if (!string.IsNullOrEmpty(match.winnerId))
         {
-            message = (match.winnerId.Value == APIClient.Instance.CurrentUser.id) ? "HAS GUANYAT!" : "HAS PERDUT...";
+            message = (match.winnerId == APIClient.Instance.CurrentUser.id) ? "HAS GUANYAT!" : "HAS PERDUT...";
         }
 
         AuthUI.Instance.ShowGameOver(message);
     }
 
-    public void NotifyPlayerDeath(int pId)
+    public void NotifyPlayerDeath(string pId)
     {
         if (activePlayers.ContainsKey(pId))
         {
             activePlayers.Remove(pId);
+        }
+
+        if (isSoloMode)
+        {
+            AuthUI.Instance.ShowGameOver("HAS XOCAT!\nMonedes recollides: " + currentScore);
+            isSoloMode = false;
+            return;
         }
 
         // Si només queda un jugador, la partida ha acabat (per al mode offline)
@@ -162,7 +182,14 @@ public class GameManager : MonoBehaviour
             }
         }
 
+        // Esborrem les monedes si n'hi ha
+        foreach (var coin in FindObjectsByType<Coin>(FindObjectsSortMode.None))
+        {
+            Destroy(coin.gameObject);
+        }
+
         activePlayers.Clear();
+        currentScore = 0;
     }
 
     public void StartOfflineAiMatch(Color playerColor)
@@ -170,24 +197,46 @@ public class GameManager : MonoBehaviour
         Debug.Log("Iniciant partida OFFLINE contra la IA");
         
         // 1. Spawnegem al jugador humà amb el color triat
-        SpawnPlayer(1, new Vector2(-4, 0), true, playerColor);
+        SpawnPlayer("PLAYER", new Vector2(-4, 0), true, playerColor);
         
         // 2. Spawnegem a la IA amb un color vermell/taronja per contrastar
         GameObject aiObj = Instantiate(aiPrefab, new Vector2(4, 0), Quaternion.identity);
         PlayerController aiController = aiObj.GetComponent<PlayerController>();
-        aiController.playerId = 0; // ID per a la IA
+        aiController.playerId = "AI"; // ID per a la IA
         aiController.isLocalPlayer = false;
         aiController.isTrainingMode = false;
         aiController.wallPrefab = Resources.Load<GameObject>("WallPrefab");
         aiController.SetColor(new Color(1f, 0.3f, 0f)); // Taronja neó per a la IA
         
-        activePlayers[0] = aiController;
+        activePlayers["AI"] = aiController;
         
         // Ens assegurem que la IA tingui el model carregat (Inference Only)
         // Nota: El fitxer .onnx s'ha d'haver assignat al prefab a l'editor.
     }
 
-    private void SpawnPlayer(int pId, Vector2 pos, bool isLocal, Color c)
+    public void StartSoloMode(Color playerColor)
+    {
+        Debug.Log("Iniciant MODE INDIVIDUAL (Recollir monedes)");
+        isSoloMode = true;
+        currentScore = 0;
+        
+        // Spawnegem al jugador al centre
+        SpawnPlayer("LOCAL", Vector2.zero, true, playerColor);
+        
+        // Spawnegem la primera moneda
+        coinSpawner.SpawnCoin();
+    }
+
+    public void CoinCollected()
+    {
+        currentScore++;
+        Debug.Log("Moneda recollida! Puntuació: " + currentScore);
+        
+        // Spawnegem la següent moneda
+        coinSpawner.SpawnCoin();
+    }
+
+    private void SpawnPlayer(string pId, Vector2 pos, bool isLocal, Color c)
     {
         GameObject playerObj = Instantiate(motoPrefab, pos, Quaternion.identity);
         PlayerController controller = playerObj.GetComponent<PlayerController>();

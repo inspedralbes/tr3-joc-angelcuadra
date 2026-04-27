@@ -34,7 +34,7 @@ public class SocketClient : MonoBehaviour
 
     public void Connect()
     {
-        var uri = new Uri("http://localhost:3000");
+        var uri = new Uri("http://204.168.213.113:3000");
         socket = new SocketIOUnity(uri, new SocketIOOptions
         {
             Query = new Dictionary<string, string>
@@ -109,21 +109,21 @@ public class SocketClient : MonoBehaviour
         }
     }
 
-    public void CreateMatch(string roomName)
+    public void CreateMatch(string hostId, string roomName, Color color)
     {
-        if (socket != null && socket.Connected && APIClient.Instance.CurrentUser != null)
+        if (socket != null && socket.Connected)
         {
-            var data = new { hostId = APIClient.Instance.CurrentUser.id, roomName = roomName };
-            socket.Emit("createMatch", data);
+            string colorHex = "#" + ColorUtility.ToHtmlStringRGB(color);
+            socket.Emit("createMatch", new { hostId, roomName, color = colorHex });
         }
     }
 
-    public void JoinMatch(int matchId)
+    public void JoinMatch(int matchId, string playerId, Color color)
     {
-        if (socket != null && socket.Connected && APIClient.Instance.CurrentUser != null)
+        if (socket != null && socket.Connected)
         {
-            var data = new { matchId = matchId, playerId = APIClient.Instance.CurrentUser.id };
-            socket.Emit("joinMatch", data);
+            string colorHex = "#" + ColorUtility.ToHtmlStringRGB(color);
+            socket.Emit("joinMatch", new { matchId, playerId, color = colorHex });
         }
     }
 

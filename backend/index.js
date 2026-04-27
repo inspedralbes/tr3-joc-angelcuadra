@@ -2,6 +2,13 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const mongoose = require('mongoose');
+require('dotenv').config();
+
+// Connexió a MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('Connectat a MongoDB'))
+  .catch(err => console.error('Error connectant a MongoDB:', err));
 
 const userRoutes = require('./src/routes/userRoutes');
 

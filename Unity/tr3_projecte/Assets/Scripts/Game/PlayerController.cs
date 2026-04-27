@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
     
     // Variables de xarxa
     public bool isLocalPlayer = false;
-    public int playerId;
+    public string playerId;
     public bool isTrainingMode = false;
 
     private Vector2 currentDirection = Vector2.up;
@@ -222,7 +222,11 @@ public class PlayerController : MonoBehaviour
 
     public void SetColor(Color c)
     {
-        myColor = c;
-        GetComponent<SpriteRenderer>().color = c;
+        // Multipliquem el color per una intensitat per fer-lo HDR i que el Bloom brilli
+        float intensity = 2.5f;
+        Color hdrColor = new Color(c.r * intensity, c.g * intensity, c.b * intensity, c.a);
+        
+        myColor = hdrColor;
+        GetComponent<SpriteRenderer>().color = hdrColor;
     }
 }
