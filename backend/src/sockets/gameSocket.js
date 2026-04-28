@@ -80,8 +80,8 @@ module.exports = (io) => {
         }
 
         io.to(`match_${matchId}`).emit('matchEnded', JSON.stringify({
-          winnerId,
-          loserId
+          winnerId: winnerId ? winnerId.toString() : null,
+          loserId: loserId ? loserId.toString() : null
         }));
       }
     });

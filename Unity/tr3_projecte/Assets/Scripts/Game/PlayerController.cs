@@ -12,6 +12,7 @@ public class PlayerController : MonoBehaviour
     public string playerId;
     public bool isTrainingMode = false;
 
+    public Vector2 initialDirection = Vector2.up; // Assignada pel GameManager abans de Start()
     private Vector2 currentDirection = Vector2.up;
     private Vector2 nextDirection = Vector2.up;
     private Collider2D wallCollider;
@@ -21,6 +22,7 @@ public class PlayerController : MonoBehaviour
     private float gracePeriod = 2.0f; // Immortal des del naixement (mil·lisegon zero)
     private MotoAgent agentRef;
     private Color myColor = Color.white;
+    public bool isDead = false; // Bandera per evitar col·lisions fantasma en el darrer frame
 
     private void Awake()
     {
@@ -31,14 +33,26 @@ public class PlayerController : MonoBehaviour
     private void Start()
     {
         gracePeriod = 1.5f; // Imunitat durant 1.5 segons
-        // Forçar direcció inicial a la dreta
-        if (currentDirection == Vector2.zero || currentDirection == Vector2.up)
+
+        // Apliquem la direcció assignada pel GameManager (UP per defecte si no s'ha assignat)
+        if (initialDirection != Vector2.zero)
+        {
+            currentDirection = initialDirection;
+            nextDirection = initialDirection;
+        }
+        else if (currentDirection == Vector2.zero)
         {
             currentDirection = Vector2.right;
             nextDirection = Vector2.right;
         }
-        
-        Debug.Log($"[START] Moto {playerId} | Local: {isLocalPlayer} | AI: {agentRef != null}");
+
+        // Rotem el sprite per coincidir amb la direcció inicial
+        if (currentDirection == Vector2.up)         transform.rotation = Quaternion.Euler(0, 0, 0);
+        else if (currentDirection == Vector2.down)   transform.rotation = Quaternion.Euler(0, 0, 180);
+        else if (currentDirection == Vector2.left)   transform.rotation = Quaternion.Euler(0, 0, 90);
+        else if (currentDirection == Vector2.right)  transform.rotation = Quaternion.Euler(0, 0, -90);
+
+        Debug.Log($"[START] Moto {playerId} | Local: {isLocalPlayer} | Dir: {currentDirection}");
         SpawnWall();
     }
 
@@ -108,8 +122,9 @@ public class PlayerController : MonoBehaviour
         GameObject wall = Instantiate(wallPrefab, transform.position, Quaternion.identity, transform.parent);
         wall.tag = "Wall"; // SEGURETAT: Ens assegurem que tingui el Tag per a la IA
         
-        // Apliquem el color al mur
-        wall.GetComponent<SpriteRenderer>().color = myColor;
+        SpriteRenderer wallSR = wall.GetComponent<SpriteRenderer>();
+        wallSR.color = myColor;
+        wallSR.sortingOrder = -1; // L'estela es renderitza DARRERE de la moto (moto = ordre 0)
         
         wallCollider = wall.GetComponent<Collider2D>();
         myWalls.Add(wall);
@@ -137,11 +152,13 @@ public class PlayerController : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        // Protecció principal: si ja estem morts (cleanup en curs), ignorem tot
+        if (isDead) return;
         // Només comprovem col·lisions si som el jugador local o una IA
         if (!isLocalPlayer && agentRef == null) return;
         if (gracePeriod > 0) return; // Invencible el primer segon i mig
 
-        if (other.CompareTag("Wall") || other.CompareTag("Player") || other.CompareTag("Boundary"))
+        if (other.CompareTag("Wall") || other.CompareTag("Player"))
         {
             // IGNORAR si és el mur que estem creant ara mateix
             if (other == wallCollider) return;
@@ -154,6 +171,7 @@ public class PlayerController : MonoBehaviour
             }
             else
             {
+                isDead = true; // Marquem com a mort ABANS d'enviar res
                 SocketClient.Instance.SendCollision(GameManager.Instance.currentMatchId);
                 GameManager.Instance.NotifyPlayerDeath(playerId);
                 Destroy(gameObject);

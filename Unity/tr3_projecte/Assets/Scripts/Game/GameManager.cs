@@ -78,24 +78,27 @@ public class GameManager : MonoBehaviour
 
     private void HandleMatchStarted(string matchDataJson)
     {
-        // Protecció: si ja hem començat aquesta partida, ignorem el duplicat
-        if (currentMatchId != 0) {
-            Debug.LogWarning("Avís: S'ha rebut matchStarted però la partida ja estava en marxa.");
+        MatchData match = JsonConvert.DeserializeObject<MatchData>(matchDataJson);
+
+        // Protecció: ignorem únivament si és un DUPLICAT de la mateixa partida en curs
+        if (currentMatchId != 0 && currentMatchId == match.id) {
+            Debug.LogWarning("Avís: S'ha rebut matchStarted duplicat per la partida " + match.id + ". Ignorant.");
             return;
         }
 
         Debug.Log("La partida ha començat: " + matchDataJson);
-        MatchData match = JsonConvert.DeserializeObject<MatchData>(matchDataJson);
         StartMatch(match);
     }
 
     public void StartMatch(MatchData match)
     {
-        currentMatchId = match.id;
         string myId = APIClient.Instance.CurrentUser.id;
-        
-        CleanCurrentMatch(); // Neteja abans de començar
 
+        // Netegem PRIMER (reseteja currentMatchId a 0 i destrueix objectes vells)
+        CleanCurrentMatch();
+        // Després assignem el nou ID de partida
+        currentMatchId = match.id;
+        
         for (int i = 0; i < match.players.Count; i++)
         {
             string pId = match.players[i];
@@ -168,17 +171,25 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("Netejant escena per a nova partida...");
         
-        // 1. Destruir tots els jugadors (i apagar-los primer!)
+        // Reset de l'ID PRIMER, així cap col·lisió diferida pot enviar per la partida vella
+        currentMatchId = 0;
+
+        // 1. Destruir tots els jugadors (marcar isDead i desactivar COL·LIDERS immediatament)
         foreach (var player in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
         {
+            player.isDead = true; // Evita col·lisions en el darrer frame (Destroy és diferit!)
+            foreach (var col in player.GetComponentsInChildren<Collider2D>())
+                col.enabled = false;
             player.gameObject.SetActive(false); 
             Destroy(player.gameObject);
         }
         
-        // 2. Destruir TOTS els murs/esteles
+        // 2. Destruir TOTS els murs/esteles (desactivar col·lidor immediatament)
         GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
         foreach (GameObject wall in walls)
         {
+            var col = wall.GetComponent<Collider2D>();
+            if (col != null) col.enabled = false; // Desactiva abans del Destroy diferit
             wall.SetActive(false);
             Destroy(wall);
         }
@@ -248,6 +259,13 @@ public class GameManager : MonoBehaviour
         controller.isTrainingMode = false;
         controller.wallPrefab = Resources.Load<GameObject>("WallPrefab");
         controller.SetColor(c);
+
+        // Direcció inicial basada en posició: esquerra va cap amunt, dreta cap amunt
+        // Ambdós comencen cap amunt (UP) → els murs creixen cap avall, no xoquen mai immediatament
+        if (pos.x < 0)
+            controller.initialDirection = Vector2.up;   // jugador esquerra
+        else
+            controller.initialDirection = Vector2.up;   // jugador dreta (també amunt, diferent carril)
 
         activePlayers[pId] = controller;
     }

@@ -19,7 +19,7 @@ class UserService {
     const newUser = await userRepository.create(username, passwordHash);
 
     return {
-      id: newUser._id,
+      id: newUser._id.toString(),
       username: newUser.username
     };
   }
@@ -44,7 +44,7 @@ class UserService {
     return {
       token,
       user: {
-        id: user._id,
+        id: user._id.toString(),
         username: user.username,
         wins: user.wins,
         losses: user.losses,
