@@ -185,6 +185,9 @@ public class GameManager : MonoBehaviour
     {
         MoveData move = JsonConvert.DeserializeObject<MoveData>(moveDataJson);
         
+        // IGNORAR si som nosaltres mateixos (el servidor ens reenvia el nostre propi moviment)
+        if (APIClient.Instance.CurrentUser != null && move.playerId == APIClient.Instance.CurrentUser.id) return;
+
         if (activePlayers.TryGetValue(move.playerId, out PlayerController opponent))
         {
             Vector2 pos = new Vector2(move.position.x, move.position.y);

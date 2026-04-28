@@ -114,11 +114,8 @@ public class AuthUI : MonoBehaviour
 
     private void HandleMatchStarted(string data)
     {
-        Debug.Log("<color=yellow>AuthUI: Amagant interfície perquè la partida ha començat!</color>");
         // Amaguem el document sencer
         uiDocument.rootVisualElement.style.display = DisplayStyle.None;
-        // També desactivem el component per si de cas
-        uiDocument.enabled = false;
     }
 
     private void HandleMatchCreated(string data)
@@ -193,10 +190,12 @@ public class AuthUI : MonoBehaviour
 
     private void ShowLobbyPanel()
     {
+        if (uiDocument == null) uiDocument = GetComponent<UIDocument>();
+        uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
+
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.Flex;
-        
-        // Omplim les estadístiques de l'usuari que venen de MongoDB
+        gameOverPanel.style.display = DisplayStyle.None;
         if (APIClient.Instance.CurrentUser != null)
         {
             userWinsLabel.text = "Wins: " + APIClient.Instance.CurrentUser.wins;
@@ -309,8 +308,8 @@ public class AuthUI : MonoBehaviour
         var result = JsonConvert.DeserializeObject<Dictionary<string, string>>(dataJson);
         
         if (uiDocument == null) uiDocument = GetComponent<UIDocument>();
-        uiDocument.enabled = true; // Ens assegurem que el component està actiu
         uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
+        
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.None;
         gameOverPanel.style.display = DisplayStyle.Flex;
@@ -344,9 +343,6 @@ public class AuthUI : MonoBehaviour
 
     private void OnReturnLobbyClicked()
     {
-        uiDocument.enabled = true; // Reactivem la UI
-        uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
-        gameOverPanel.style.display = DisplayStyle.None;
         ShowLobbyPanel();
         
         // Netegem el joc vell

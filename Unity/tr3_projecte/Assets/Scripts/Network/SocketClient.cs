@@ -34,6 +34,20 @@ public class SocketClient : MonoBehaviour
 
     public void Connect()
     {
+        if (socket != null && socket.Connected)
+        {
+            Debug.Log("Socket ja connectat. Ignorant nova petició de connexió.");
+            JoinLobby();
+            return;
+        }
+
+        // Si existia un socket vell però no connectat, el netegem
+        if (socket != null)
+        {
+            socket.Disconnect();
+            socket.Dispose();
+        }
+
         var uri = new Uri("http://204.168.213.113:3000");
         socket = new SocketIOUnity(uri, new SocketIOOptions
         {
@@ -104,7 +118,8 @@ public class SocketClient : MonoBehaviour
 
         socket.On("error", (response) => {
             try {
-                string data = response.GetValue<string>();
+                // El servidor pot enviar un string o un objecte JSON
+                string data = response.ToString();
                 UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error del servidor: " + data));
             } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error en error callback: " + ex)); }
         });
