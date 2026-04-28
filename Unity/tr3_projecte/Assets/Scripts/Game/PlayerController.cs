@@ -16,6 +16,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 currentDirection = Vector2.up;
     private Vector2 nextDirection = Vector2.up;
     private Collider2D wallCollider;
+    private Collider2D previousWallCollider;
     private Vector2 lastWallEnd;
     
     private List<GameObject> myWalls = new List<GameObject>();
@@ -28,11 +29,21 @@ public class PlayerController : MonoBehaviour
     {
         agentRef = GetComponent<MotoAgent>();
         gracePeriod = 2.0f; // Forçem la imunitat aquí perquè l'Inspector no ens la canvii
+
+        // Seguretat física: Evitem que la moto es mogui per forces o gravetat
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.bodyType = RigidbodyType2D.Kinematic;
+            rb.gravityScale = 0;
+            rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
     }
 
     private void Start()
     {
-        gracePeriod = 1.5f; // Imunitat durant 1.5 segons
+        gracePeriod = 2.0f; // Imunitat durant 2 segons per evitar morts prematures
+        Debug.Log($"[START] Moto {playerId} | Local: {isLocalPlayer} | Grace: {gracePeriod}");
 
         // Apliquem la direcció assignada pel GameManager (UP per defecte si no s'ha assignat)
         if (initialDirection != Vector2.zero)
@@ -101,6 +112,7 @@ public class PlayerController : MonoBehaviour
             else if (currentDirection == Vector2.left) transform.rotation = Quaternion.Euler(0, 0, 90);
             else if (currentDirection == Vector2.right) transform.rotation = Quaternion.Euler(0, 0, -90);
 
+            previousWallCollider = wallCollider;
             SpawnWall();
             
             if (!isTrainingMode && isLocalPlayer)
@@ -152,18 +164,29 @@ public class PlayerController : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        // Debug de qualsevol cosa que toquem
+        Debug.Log($"[COL·LISIÓ] {playerId} ha tocat {other.gameObject.name} (Tag: {other.tag}) | Grace: {gracePeriod} | isDead: {isDead}");
+
         // Protecció principal: si ja estem morts (cleanup en curs), ignorem tot
         if (isDead) return;
         // Només comprovem col·lisions si som el jugador local o una IA
         if (!isLocalPlayer && agentRef == null) return;
-        if (gracePeriod > 0) return; // Invencible el primer segon i mig
+        
+        if (gracePeriod > 0) 
+        {
+            Debug.Log($"Ignorant col·lisió de {playerId} per gracePeriod ({gracePeriod})");
+            return; 
+        }
 
         if (other.CompareTag("Wall") || other.CompareTag("Player"))
         {
-            // IGNORAR si és el mur que estem creant ara mateix
-            if (other == wallCollider) return;
+            // IGNORAR si és un dels meus murs (comprovem tota la llista, no només l'últim)
+            if (myWalls.Contains(other.gameObject)) return;
+            
+            // IGNORAR també si és el collider de la pròpia moto (per si de cas)
+            if (other.gameObject == gameObject) return;
 
-            Debug.Log("<color=red>COL·LISIÓ!</color> El jugador " + playerId + " ha xocat amb: " + other.gameObject.name + " (Tag: " + other.tag + ")");
+            Debug.Log("<color=red>COL·LISIÓ!</color> El jugador " + playerId + " ha xocat amb: " + other.gameObject.name + " (Tag: " + other.tag + ") a la posició " + transform.position);
             
             if (isTrainingMode && agentRef != null)
             {
@@ -172,9 +195,13 @@ public class PlayerController : MonoBehaviour
             else
             {
                 isDead = true; // Marquem com a mort ABANS d'enviar res
+                Debug.Log("Jugador " + playerId + " MORT. Enviant col·lisió al servidor...");
                 SocketClient.Instance.SendCollision(GameManager.Instance.currentMatchId);
                 GameManager.Instance.NotifyPlayerDeath(playerId);
-                Destroy(gameObject);
+                
+                // Desactivem el collider immediatament per evitar múltiples triggers
+                GetComponent<Collider2D>().enabled = false;
+                Destroy(gameObject, 0.1f);
             }
         }
     }

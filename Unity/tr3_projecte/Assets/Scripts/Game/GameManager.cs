@@ -74,6 +74,67 @@ public class GameManager : MonoBehaviour
         coinSpawner = gameObject.AddComponent<CoinSpawner>();
         coinSpawner.coinPrefab = coinPrefab;
         coinSpawner.spawnRange = coinSpawnRange;
+
+        SetupGameView();
+    }
+
+    private void SetupGameView()
+    {
+        // 1. Busquem si existeix una TrainingArena a l'escena
+        GameObject arena = GameObject.Find("TrainingArena");
+        Vector3 arenaCenter = Vector3.zero;
+        float cameraSize = 15f;
+
+        if (arena != null)
+        {
+            Debug.Log("<color=green>GameManager: S'ha trobat una TrainingArena! L'utilitzarem de base.</color>");
+            arenaCenter = arena.transform.position;
+            cameraSize = 8.5f; // Zoom més agressiu perquè es vegin les motos
+        }
+        else
+        {
+            Debug.Log("<color=orange>GameManager: No s'ha trobat TrainingArena. Creant límits dinàmics.</color>");
+            CreateArenaBoundaries(15f); // Arena més petita i controlada
+            cameraSize = 18f;
+        }
+
+        // 2. Configurem la càmera de forma FIXA per veure tot el camp
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            cam.transform.position = new Vector3(arenaCenter.x, arenaCenter.y, -10f);
+            cam.transform.rotation = Quaternion.Euler(0, 0, 0);
+            cam.orthographic = true;
+            cam.orthographicSize = cameraSize;
+            
+            // Eliminem el script de seguiment si existia
+            CameraFollow oldFollow = cam.GetComponent<CameraFollow>();
+            if (oldFollow != null) Destroy(oldFollow);
+        }
+    }
+
+    private void CreateArenaBoundaries(float size)
+    {
+        float thickness = 1f;
+        SpawnBoundaryWall(new Vector2(0, size), new Vector2(size * 2, thickness), "TopWall");
+        SpawnBoundaryWall(new Vector2(0, -size), new Vector2(size * 2, thickness), "BottomWall");
+        SpawnBoundaryWall(new Vector2(-size, 0), new Vector2(thickness, size * 2), "LeftWall");
+        SpawnBoundaryWall(new Vector2(size, 0), new Vector2(thickness, size * 2), "RightWall");
+    }
+
+    private void SpawnBoundaryWall(Vector2 pos, Vector2 scale, string name)
+    {
+        GameObject wall = new GameObject(name);
+        wall.transform.position = pos;
+        wall.tag = "Wall";
+        var col = wall.AddComponent<BoxCollider2D>();
+        col.size = Vector2.one;
+        wall.transform.localScale = new Vector3(scale.x, scale.y, 1f);
+        
+        // Opcional: Afegir un color perquè es vegi el límit
+        var sr = wall.AddComponent<SpriteRenderer>();
+        sr.sprite = Resources.Load<Sprite>("UnityCommandLineInternal_UIPoint"); // Un sprite blanc per defecte
+        sr.color = new Color(1, 1, 1, 0.2f);
     }
 
     private void HandleMatchStarted(string matchDataJson)
@@ -104,10 +165,12 @@ public class GameManager : MonoBehaviour
             string pId = match.players[i];
             bool isMe = (pId == myId);
             
-            // El host a l'esquerra (-10), el convidat a la dreta (10)
-            Vector2 spawnPos = (i == 0) ? new Vector2(-10, 0) : new Vector2(10, 0);
+            // Host a l'esquerra (-5), Convidat a la dreta (5) - Més segur per arenes petites
+            Vector2 spawnPos = (i == 0) ? new Vector2(-5, 0) : new Vector2(5, 0);
             
-            // Llegim el color que ens envia el servidor
+            // Si tenim arena, sumem la seva posició per centrar-los
+            GameObject arena = GameObject.Find("TrainingArena");
+            if (arena != null) spawnPos += (Vector2)arena.transform.position;
             Color playerColor = Color.cyan;
             if (match.playerColors != null && match.playerColors.ContainsKey(pId))
             {
@@ -170,34 +233,26 @@ public class GameManager : MonoBehaviour
     public void CleanCurrentMatch()
     {
         Debug.Log("Netejant escena per a nova partida...");
-        
-        // Reset de l'ID PRIMER, així cap col·lisió diferida pot enviar per la partida vella
         currentMatchId = 0;
 
-        // 1. Destruir tots els jugadors (marcar isDead i desactivar COL·LIDERS immediatament)
-        foreach (var player in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
+        // 1. Destruir jugadors
+        PlayerController[] players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+        foreach (var p in players)
         {
-            player.isDead = true; // Evita col·lisions en el darrer frame (Destroy és diferit!)
-            foreach (var col in player.GetComponentsInChildren<Collider2D>())
-                col.enabled = false;
-            player.gameObject.SetActive(false); 
-            Destroy(player.gameObject);
+            p.isDead = true;
+            Destroy(p.gameObject);
         }
-        
-        // 2. Destruir TOTS els murs/esteles (desactivar col·lidor immediatament)
+
+        // 2. Destruir TOTS els objectes amb tag "Wall" (incloses esteles i límits vells)
         GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
         foreach (GameObject wall in walls)
         {
-            var col = wall.GetComponent<Collider2D>();
-            if (col != null) col.enabled = false; // Desactiva abans del Destroy diferit
-            wall.SetActive(false);
             Destroy(wall);
         }
 
-        // 3. Esborrem les monedes
+        // 3. Destruir monedes
         foreach (var coin in FindObjectsByType<Coin>(FindObjectsSortMode.None))
         {
-            coin.gameObject.SetActive(false);
             Destroy(coin.gameObject);
         }
 
@@ -268,6 +323,9 @@ public class GameManager : MonoBehaviour
             controller.initialDirection = Vector2.up;   // jugador dreta (també amunt, diferent carril)
 
         activePlayers[pId] = controller;
+
+        // Ja no fem que la càmera segueixi el jugador individual
+        // cam.SetTarget(playerObj.transform);
     }
 
     private void OnDestroy()

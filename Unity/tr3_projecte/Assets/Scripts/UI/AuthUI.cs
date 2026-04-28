@@ -89,7 +89,9 @@ public class AuthUI : MonoBehaviour
         // Ens subscrivim a l'inici del joc per amagar la UI
         if (SocketClient.Instance != null)
         {
+            SocketClient.Instance.OnMatchStarted -= HandleMatchStarted;
             SocketClient.Instance.OnMatchStarted += HandleMatchStarted;
+            Debug.Log("AuthUI: Subscrit a OnMatchStarted correctament.");
         }
     }
 
@@ -112,7 +114,11 @@ public class AuthUI : MonoBehaviour
 
     private void HandleMatchStarted(string data)
     {
+        Debug.Log("<color=yellow>AuthUI: Amagant interfície perquè la partida ha començat!</color>");
+        // Amaguem el document sencer
         uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        // També desactivem el component per si de cas
+        uiDocument.enabled = false;
     }
 
     private void HandleMatchCreated(string data)
@@ -204,6 +210,10 @@ public class AuthUI : MonoBehaviour
         SocketClient.Instance.OnMatchCreated += HandleMatchCreated;
         SocketClient.Instance.OnMatchesUpdated -= UpdateMatchList;
         SocketClient.Instance.OnMatchesUpdated += UpdateMatchList;
+        
+        // Re-assegurem la subscripció aquí també
+        SocketClient.Instance.OnMatchStarted -= HandleMatchStarted;
+        SocketClient.Instance.OnMatchStarted += HandleMatchStarted;
     }
 
     private void UpdateMatchList(string json)
@@ -298,29 +308,55 @@ public class AuthUI : MonoBehaviour
         // El servidor ens envia { winnerId, loserId }
         var result = JsonConvert.DeserializeObject<Dictionary<string, string>>(dataJson);
         
+        if (uiDocument == null) uiDocument = GetComponent<UIDocument>();
+        uiDocument.enabled = true; // Ens assegurem que el component està actiu
         uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.None;
         gameOverPanel.style.display = DisplayStyle.Flex;
 
-        if (APIClient.Instance.CurrentUser != null && result != null && result.ContainsKey("winnerId") && result["winnerId"] == APIClient.Instance.CurrentUser.id)
+        string myId = APIClient.Instance.CurrentUser?.id;
+        string winnerId = (result != null && result.ContainsKey("winnerId")) ? result["winnerId"] : null;
+
+        Debug.Log($"Comparant Winner: '{winnerId}' amb el meu ID: '{myId}'");
+
+        if (!string.IsNullOrEmpty(myId) && !string.IsNullOrEmpty(winnerId) && winnerId == myId)
         {
             winnerText.text = "¡VICTÒRIA! HAS GUANYAT";
             winnerText.style.color = Color.green;
         }
-        else
+        else if (!string.IsNullOrEmpty(winnerId))
         {
             winnerText.text = "GAME OVER - HAS PERDUT";
             winnerText.style.color = Color.red;
         }
+        else
+        {
+            winnerText.text = "PARTIDA FINALITZADA";
+            winnerText.style.color = Color.white;
+        }
+
+        // Actualitzem les estadístiques en segon pla per quan tornem al lobby
+        APIClient.Instance.GetProfile((success) => {
+            if (success) Debug.Log("Estadístiques actualitzades des del servidor.");
+        });
     }
 
     private void OnReturnLobbyClicked()
     {
+        uiDocument.enabled = true; // Reactivem la UI
+        uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
         gameOverPanel.style.display = DisplayStyle.None;
         ShowLobbyPanel();
         
         // Netegem el joc vell
         GameManager.Instance.CleanCurrentMatch();
+        
+        // Ens assegurem que les estadístiques es mostren actualitzades
+        if (APIClient.Instance.CurrentUser != null)
+        {
+            userWinsLabel.text = "Wins: " + APIClient.Instance.CurrentUser.wins;
+            userCoinsLabel.text = "Monedes: " + APIClient.Instance.CurrentUser.coinsCollected;
+        }
     }
 }

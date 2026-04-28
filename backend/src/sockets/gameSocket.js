@@ -65,24 +65,36 @@ module.exports = (io) => {
 
     // Rebre col·lisió (Fi del joc)
     socket.on('playerCollision', async ({ matchId, loserId }) => {
-      console.log(`COL·LISIÓ REBUDA: El jugador ${loserId} diu que ha mort a la partida ${matchId}`);
-      const match = matchRepository.getMatch(matchId);
+      const mId = Number(matchId);
+      console.log(`COL·LISIÓ REBUDA: El jugador ${loserId} diu que ha mort a la partida ${mId}`);
+      
+      const match = matchRepository.getMatch(mId);
       if (match && match.status === 'playing') {
         const winnerId = match.players.find(id => id !== loserId);
+        console.log(`Guanyador determinat: ${winnerId} | Perdedor: ${loserId}`);
         
-        matchRepository.updateMatchStatus(matchId, 'finished');
+        matchRepository.updateMatchStatus(mId, 'finished');
         match.winnerId = winnerId;
         
         // Actualitzar estadístiques a MongoDB (Asíncron)
-        await userRepository.updateStats(loserId, false);
-        if (winnerId) {
-          await userRepository.updateStats(winnerId, true);
+        try {
+          await userRepository.updateStats(loserId, false);
+          if (winnerId) {
+            await userRepository.updateStats(winnerId, true);
+            console.log(`Estadístiques actualitzades per ${winnerId} (Win) i ${loserId} (Loss)`);
+          }
+        } catch (err) {
+          console.error("Error actualitzant estadístiques:", err);
         }
 
-        io.to(`match_${matchId}`).emit('matchEnded', JSON.stringify({
+        const endData = {
           winnerId: winnerId ? winnerId.toString() : null,
           loserId: loserId ? loserId.toString() : null
-        }));
+        };
+        console.log("Enviant matchEnded:", endData);
+        io.to(`match_${mId}`).emit('matchEnded', JSON.stringify(endData));
+      } else {
+        console.warn(`Col·lisió ignorada: Partida ${mId} no trobada o ja finalitzada (Status: ${match ? match.status : 'N/A'})`);
       }
     });
 

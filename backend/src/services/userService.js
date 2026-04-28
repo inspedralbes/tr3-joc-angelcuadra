@@ -52,6 +52,20 @@ class UserService {
       }
     };
   }
+
+  async getProfile(token) {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await userRepository.findById(decoded.id);
+    if (!user) throw new Error("Usuari no trobat");
+
+    return {
+      id: user._id.toString(),
+      username: user.username,
+      wins: user.wins,
+      losses: user.losses,
+      coinsCollected: user.coinsCollected
+    };
+  }
 }
 
 module.exports = new UserService();

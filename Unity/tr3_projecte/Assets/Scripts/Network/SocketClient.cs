@@ -97,6 +97,7 @@ public class SocketClient : MonoBehaviour
         socket.On("matchEnded", (response) => {
             try {
                 string data = response.GetValue<string>();
+                Debug.Log("<color=orange>EVENT matchEnded rebut:</color> " + data);
                 UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchEnded?.Invoke(data));
             } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error matchEnded: " + ex)); }
         });
@@ -165,7 +166,7 @@ public class SocketClient : MonoBehaviour
     {
         if (socket != null && socket.Connected && APIClient.Instance.CurrentUser != null)
         {
-            Debug.Log("<color=red>ENVIANT COLLISIO AL SERVIDOR!</color> ID Partida: " + matchId);
+            Debug.Log("<color=red>ENVIANT COLLISIO AL SERVIDOR!</color> ID Partida: " + matchId + " | Loser: " + APIClient.Instance.CurrentUser.id);
             var data = new { matchId = matchId, loserId = APIClient.Instance.CurrentUser.id };
             socket.Emit("playerCollision", data);
         }

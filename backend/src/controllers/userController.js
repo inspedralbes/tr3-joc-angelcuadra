@@ -20,6 +20,19 @@ class UserController {
       res.status(401).json({ success: false, message: error.message });
     }
   }
+
+  async getProfile(req, res) {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) throw new Error("No s'ha proporcionat token");
+      
+      const token = authHeader.split(' ')[1];
+      const result = await userService.getProfile(token);
+      res.status(200).json({ success: true, data: result });
+    } catch (error) {
+      res.status(401).json({ success: false, message: error.message });
+    }
+  }
 }
 
 module.exports = new UserController();

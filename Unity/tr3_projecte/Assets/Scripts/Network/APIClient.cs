@@ -101,4 +101,37 @@ public class APIClient : MonoBehaviour
             }
         }
     }
+
+    public void GetProfile(Action<bool> onComplete)
+    {
+        StartCoroutine(GetProfileRoutine(onComplete));
+    }
+
+    private IEnumerator GetProfileRoutine(Action<bool> onComplete)
+    {
+        using (UnityWebRequest www = UnityWebRequest.Get(API_URL + "/profile"))
+        {
+            www.SetRequestHeader("Authorization", "Bearer " + Token);
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("Error GetProfile: " + www.error);
+                onComplete?.Invoke(false);
+            }
+            else
+            {
+                AuthResponse response = JsonUtility.FromJson<AuthResponse>(www.downloadHandler.text);
+                if (response.success && response.data != null)
+                {
+                    CurrentUser = response.data.user;
+                    onComplete?.Invoke(true);
+                }
+                else
+                {
+                    onComplete?.Invoke(false);
+                }
+            }
+        }
+    }
 }
