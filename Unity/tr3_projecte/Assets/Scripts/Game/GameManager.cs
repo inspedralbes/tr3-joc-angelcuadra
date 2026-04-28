@@ -131,6 +131,7 @@ public class GameManager : MonoBehaviour
     private void HandleMatchEnded(string endDataJson)
     {
         Debug.Log("La partida ha finalitzat (Resposta Servidor): " + endDataJson);
+        currentMatchId = 0; // Netegem l'ID per permetre noves partides
         AuthUI.Instance.ShowGameOver(endDataJson);
     }
 
@@ -138,6 +139,9 @@ public class GameManager : MonoBehaviour
     {
         Debug.Log("Notificant mort del jugador: " + pId);
         
+        // Esborrem el jugador del diccionari de forma segura
+        if (activePlayers.ContainsKey(pId)) activePlayers.Remove(pId);
+
         // Si és multijugador, NO fem res més (esperem el missatge oficial del servidor)
         if (currentMatchId != 0) return;
 
