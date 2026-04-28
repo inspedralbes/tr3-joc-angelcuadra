@@ -47,6 +47,7 @@ public class SocketClient : MonoBehaviour
         socket.OnConnected += (sender, e) =>
         {
             Debug.Log("<color=green>Socket.IO Connectat amb èxit!</color>");
+            JoinLobby(); // Ens unim al lobby automàticament en connectar
         };
 
         socket.OnDisconnected += (sender, e) =>
@@ -63,8 +64,12 @@ public class SocketClient : MonoBehaviour
 
         socket.On("matchCreated", (response) => {
             try {
+                Debug.Log("<color=cyan>Resposta matchCreated rebuda del servidor!</color>");
                 string data = response.GetValue<string>();
-                UnityMainThreadDispatcher.Instance().Enqueue(() => OnMatchCreated?.Invoke(data));
+                UnityMainThreadDispatcher.Instance().Enqueue(() => {
+                    Debug.Log("Invocant OnMatchCreated des del fil principal...");
+                    OnMatchCreated?.Invoke(data);
+                });
             } catch (Exception ex) { UnityMainThreadDispatcher.Instance().Enqueue(() => Debug.LogError("Error matchCreated: " + ex)); }
         });
 
@@ -160,6 +165,7 @@ public class SocketClient : MonoBehaviour
     {
         if (socket != null && socket.Connected && APIClient.Instance.CurrentUser != null)
         {
+            Debug.Log("<color=red>ENVIANT COLLISIO AL SERVIDOR!</color> ID Partida: " + matchId);
             var data = new { matchId = matchId, loserId = APIClient.Instance.CurrentUser.id };
             socket.Emit("playerCollision", data);
         }

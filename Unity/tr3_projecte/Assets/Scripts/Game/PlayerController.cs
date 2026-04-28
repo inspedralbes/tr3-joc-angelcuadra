@@ -18,17 +18,19 @@ public class PlayerController : MonoBehaviour
     private Vector2 lastWallEnd;
     
     private List<GameObject> myWalls = new List<GameObject>();
-    private float gracePeriod = 0.5f;
+    private float gracePeriod = 2.0f; // Immortal des del naixement (mil·lisegon zero)
     private MotoAgent agentRef;
     private Color myColor = Color.white;
 
     private void Awake()
     {
         agentRef = GetComponent<MotoAgent>();
+        gracePeriod = 2.0f; // Forçem la imunitat aquí perquè l'Inspector no ens la canvii
     }
 
     private void Start()
     {
+        gracePeriod = 1.5f; // Imunitat durant 1.5 segons
         // Forçar direcció inicial a la dreta
         if (currentDirection == Vector2.zero || currentDirection == Vector2.up)
         {
@@ -36,7 +38,7 @@ public class PlayerController : MonoBehaviour
             nextDirection = Vector2.right;
         }
         
-        Debug.Log($"[START] Moto {playerId} | Local: {isLocalPlayer} | AI: {agentRef != null} | Training: {isTrainingMode}");
+        Debug.Log($"[START] Moto {playerId} | Local: {isLocalPlayer} | AI: {agentRef != null}");
         SpawnWall();
     }
 
@@ -137,14 +139,14 @@ public class PlayerController : MonoBehaviour
     {
         // Només comprovem col·lisions si som el jugador local o una IA
         if (!isLocalPlayer && agentRef == null) return;
-        if (gracePeriod > 0) return; // Invencible el primer mig segon
+        if (gracePeriod > 0) return; // Invencible el primer segon i mig
 
-        if (other.CompareTag("Wall") || other.CompareTag("Player"))
+        if (other.CompareTag("Wall") || other.CompareTag("Player") || other.CompareTag("Boundary"))
         {
             // IGNORAR si és el mur que estem creant ara mateix
             if (other == wallCollider) return;
 
-            Debug.Log("CRASH! El jugador " + playerId + " ha perdut.");
+            Debug.Log("<color=red>COL·LISIÓ!</color> El jugador " + playerId + " ha xocat amb: " + other.gameObject.name + " (Tag: " + other.tag + ")");
             
             if (isTrainingMode && agentRef != null)
             {

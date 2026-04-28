@@ -60,8 +60,14 @@ public class GameManager : MonoBehaviour
     {
         if (SocketClient.Instance != null)
         {
+            // NETEJEM subscripcions velles per evitar duplicats
+            SocketClient.Instance.OnMatchStarted -= HandleMatchStarted;
             SocketClient.Instance.OnMatchStarted += HandleMatchStarted;
+            
+            SocketClient.Instance.OnOpponentMoved -= HandleOpponentMoved;
             SocketClient.Instance.OnOpponentMoved += HandleOpponentMoved;
+            
+            SocketClient.Instance.OnMatchEnded -= HandleMatchEnded;
             SocketClient.Instance.OnMatchEnded += HandleMatchEnded;
         }
 
@@ -72,38 +78,40 @@ public class GameManager : MonoBehaviour
 
     private void HandleMatchStarted(string matchDataJson)
     {
+        // Protecció: si ja hem començat aquesta partida, ignorem el duplicat
+        if (currentMatchId != 0) {
+            Debug.LogWarning("Avís: S'ha rebut matchStarted però la partida ja estava en marxa.");
+            return;
+        }
+
         Debug.Log("La partida ha començat: " + matchDataJson);
         MatchData match = JsonConvert.DeserializeObject<MatchData>(matchDataJson);
-        currentMatchId = match.id;
-        
-        string myId = APIClient.Instance.CurrentUser.id;
+        StartMatch(match);
+    }
 
-        Vector2 pos1 = new Vector2(-4, 0);
-        Vector2 pos2 = new Vector2(4, 0);
+    public void StartMatch(MatchData match)
+    {
+        currentMatchId = match.id;
+        string myId = APIClient.Instance.CurrentUser.id;
+        
+        CleanCurrentMatch(); // Neteja abans de començar
 
         for (int i = 0; i < match.players.Count; i++)
         {
             string pId = match.players[i];
             bool isMe = (pId == myId);
-            Vector2 startPos = (i == 0) ? pos1 : pos2;
-
-            // Llegim el color que ens envia el servidor (en Hex)
-            Color playerColor = Color.cyan; // Per defecte
+            
+            // El host a l'esquerra (-10), el convidat a la dreta (10)
+            Vector2 spawnPos = (i == 0) ? new Vector2(-10, 0) : new Vector2(10, 0);
+            
+            // Llegim el color que ens envia el servidor
+            Color playerColor = Color.cyan;
             if (match.playerColors != null && match.playerColors.ContainsKey(pId))
             {
                 ColorUtility.TryParseHtmlString(match.playerColors[pId], out playerColor);
             }
 
-            SpawnPlayer(pId, startPos, isMe, playerColor);
-        }
-
-        if (match.players.Count == 1)
-        {
-            Debug.Log("Iniciant partida contra la IA (ML-Agents)");
-            GameObject aiObj = Instantiate(aiPrefab, pos2, Quaternion.identity);
-            PlayerController aiController = aiObj.GetComponent<PlayerController>();
-            aiController.playerId = "AI";
-            activePlayers["AI"] = aiController;
+            SpawnPlayer(pId, spawnPos, isMe, playerColor);
         }
     }
 
@@ -122,70 +130,59 @@ public class GameManager : MonoBehaviour
 
     private void HandleMatchEnded(string endDataJson)
     {
-        Debug.Log("La partida ha finalitzat: " + endDataJson);
-        MatchData match = JsonConvert.DeserializeObject<MatchData>(endDataJson);
-        
-        string message = "Partida Finalitzada";
-        if (!string.IsNullOrEmpty(match.winnerId))
-        {
-            message = (match.winnerId == APIClient.Instance.CurrentUser.id) ? "HAS GUANYAT!" : "HAS PERDUT...";
-        }
-
-        AuthUI.Instance.ShowGameOver(message);
+        Debug.Log("La partida ha finalitzat (Resposta Servidor): " + endDataJson);
+        AuthUI.Instance.ShowGameOver(endDataJson);
     }
 
     public void NotifyPlayerDeath(string pId)
     {
-        if (activePlayers.ContainsKey(pId))
-        {
-            activePlayers.Remove(pId);
-        }
+        Debug.Log("Notificant mort del jugador: " + pId);
+        
+        // Si és multijugador, NO fem res més (esperem el missatge oficial del servidor)
+        if (currentMatchId != 0) return;
 
         if (isSoloMode)
         {
-            AuthUI.Instance.ShowGameOver("HAS XOCAT!\nMonedes recollides: " + currentScore);
+            var soloResult = new { winnerId = "NONE", loserId = pId, message = "HAS XOCAT!\nMonedes: " + currentScore };
+            AuthUI.Instance.ShowGameOver(JsonConvert.SerializeObject(soloResult));
             isSoloMode = false;
             return;
         }
 
-        // Si només queda un jugador, la partida ha acabat (per al mode offline)
-        if (activePlayers.Count == 1)
+        // Lògica per a partides OFFLINE (IA)
+        if (activePlayers.Count <= 1)
         {
-            foreach (var player in activePlayers.Values)
-            {
-                string msg = (player.isLocalPlayer) ? "HAS GUANYAT!" : "LA IA T'HA GUANYAT...";
-                AuthUI.Instance.ShowGameOver(msg);
-                break;
-            }
-        }
-        else if (activePlayers.Count == 0)
-        {
-            AuthUI.Instance.ShowGameOver("EMPANT (Tots dos heu xocat!)");
+            string winner = "DESCONEGUT";
+            foreach (var p in activePlayers.Values) winner = p.playerId;
+            
+            var result = new { winnerId = winner, loserId = pId };
+            AuthUI.Instance.ShowGameOver(JsonConvert.SerializeObject(result));
         }
     }
 
     public void CleanCurrentMatch()
     {
-        // 1. Esborrem les motos que encara estiguin vives
+        Debug.Log("Netejant escena per a nova partida...");
+        
+        // 1. Destruir tots els jugadors (i apagar-los primer!)
         foreach (var player in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
         {
+            player.gameObject.SetActive(false); 
             Destroy(player.gameObject);
         }
-
-        // 2. Esborrem TOTS els murs/esteles que s'hagin creat (els que són clons)
-        GameObject[] allWalls = GameObject.FindGameObjectsWithTag("Wall");
-        foreach (GameObject wall in allWalls)
+        
+        // 2. Destruir TOTS els murs/esteles
+        GameObject[] walls = GameObject.FindGameObjectsWithTag("Wall");
+        foreach (GameObject wall in walls)
         {
-            // Si el nom conté "(Clone)", és una estela creada pel jugador, no una paret de l'arena
-            if (wall.name.Contains("(Clone)"))
-            {
-                Destroy(wall);
-            }
+            wall.SetActive(false);
+            Destroy(wall);
         }
 
-        // Esborrem les monedes si n'hi ha
+        // 3. Esborrem les monedes
         foreach (var coin in FindObjectsByType<Coin>(FindObjectsSortMode.None))
         {
+            coin.gameObject.SetActive(false);
             Destroy(coin.gameObject);
         }
 

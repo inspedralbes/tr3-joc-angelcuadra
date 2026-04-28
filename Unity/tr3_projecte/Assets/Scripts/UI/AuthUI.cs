@@ -90,8 +90,6 @@ public class AuthUI : MonoBehaviour
         if (SocketClient.Instance != null)
         {
             SocketClient.Instance.OnMatchStarted += HandleMatchStarted;
-            SocketClient.Instance.OnMatchesUpdated += UpdateMatchList;
-            SocketClient.Instance.OnMatchCreated += HandleMatchCreated;
         }
     }
 
@@ -117,9 +115,11 @@ public class AuthUI : MonoBehaviour
         uiDocument.rootVisualElement.style.display = DisplayStyle.None;
     }
 
-    private void HandleMatchCreated(string matchId)
+    private void HandleMatchCreated(string data)
     {
-        lobbyStatusText.text = "Partida creada! Esperant oponent...";
+        Debug.Log("HandleMatchCreated executat a la UI");
+        lobbyStatusText.text = "PARTIDA CREADA! Esperant oponent...";
+        lobbyStatusText.style.color = new StyleColor(Color.green);
     }
 
     private void OnLoginClicked()
@@ -198,13 +198,12 @@ public class AuthUI : MonoBehaviour
         }
 
         SocketClient.Instance.Connect();
-        // Donem un segon perquè es connecti i demanem el lobby
-        Invoke("JoinLobbyAfterConnect", 1.0f);
-    }
-
-    private void JoinLobbyAfterConnect()
-    {
-        SocketClient.Instance.JoinLobby();
+        
+        // Ens subscrivim aquí per assegurar-nos que el SocketClient existeix
+        SocketClient.Instance.OnMatchCreated -= HandleMatchCreated; // Netegem per si de cas
+        SocketClient.Instance.OnMatchCreated += HandleMatchCreated;
+        SocketClient.Instance.OnMatchesUpdated -= UpdateMatchList;
+        SocketClient.Instance.OnMatchesUpdated += UpdateMatchList;
     }
 
     private void UpdateMatchList(string json)
@@ -292,13 +291,28 @@ public class AuthUI : MonoBehaviour
         return selectedColor;
     }
 
-    public void ShowGameOver(string winnerMessage)
+    public void ShowGameOver(string dataJson)
     {
+        Debug.Log("Dades de Game Over rebudes: " + dataJson);
+        
+        // El servidor ens envia { winnerId, loserId }
+        var result = JsonConvert.DeserializeObject<Dictionary<string, string>>(dataJson);
+        
         uiDocument.rootVisualElement.style.display = DisplayStyle.Flex;
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.None;
         gameOverPanel.style.display = DisplayStyle.Flex;
-        winnerText.text = winnerMessage;
+
+        if (APIClient.Instance.CurrentUser != null && result != null && result.ContainsKey("winnerId") && result["winnerId"] == APIClient.Instance.CurrentUser.id)
+        {
+            winnerText.text = "¡VICTÒRIA! HAS GUANYAT";
+            winnerText.style.color = Color.green;
+        }
+        else
+        {
+            winnerText.text = "GAME OVER - HAS PERDUT";
+            winnerText.style.color = Color.red;
+        }
     }
 
     private void OnReturnLobbyClicked()

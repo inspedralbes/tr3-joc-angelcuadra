@@ -65,6 +65,7 @@ module.exports = (io) => {
 
     // Rebre col·lisió (Fi del joc)
     socket.on('playerCollision', async ({ matchId, loserId }) => {
+      console.log(`COL·LISIÓ REBUDA: El jugador ${loserId} diu que ha mort a la partida ${matchId}`);
       const match = matchRepository.getMatch(matchId);
       if (match && match.status === 'playing') {
         const winnerId = match.players.find(id => id !== loserId);
