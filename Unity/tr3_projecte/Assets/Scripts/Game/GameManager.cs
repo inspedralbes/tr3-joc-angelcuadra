@@ -89,13 +89,13 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("<color=green>GameManager: S'ha trobat una TrainingArena! L'utilitzarem de base.</color>");
             arenaCenter = arena.transform.position;
-            cameraSize = 20f; // Més marge per assegurar visibilitat
+            cameraSize = 16f; // Més a prop per veure millor la acció
         }
         else
         {
             Debug.Log("<color=orange>GameManager: No s'ha trobat TrainingArena. Creant límits dinàmics.</color>");
             CreateArenaBoundaries(15f);
-            cameraSize = 20f;
+            cameraSize = 16f;
         }
 
         // 2. Configurem la càmera de forma FIXA per veure tot el camp
@@ -161,16 +161,18 @@ public class GameManager : MonoBehaviour
         }
 
         Debug.Log("La partida ha començat: " + matchDataJson);
+        
+        // Netegem PRIMER
+        CleanCurrentMatch();
+        // Creem límits perquè no s'esborrin
+        CreateArenaBoundaries(15f);
+        
         StartMatch(match);
     }
 
     public void StartMatch(MatchData match)
     {
         string myId = APIClient.Instance.CurrentUser.id;
-
-        // Netegem PRIMER (reseteja currentMatchId a 0 i destrueix objectes vells)
-        CleanCurrentMatch();
-        // Després assignem el nou ID de partida
         currentMatchId = match.id;
         
         for (int i = 0; i < match.players.Count; i++)
@@ -279,9 +281,13 @@ public class GameManager : MonoBehaviour
     public void StartOfflineAiMatch(Color playerColor)
     {
         Debug.Log("Iniciant partida OFFLINE contra la IA");
+        CleanCurrentMatch();
+        CreateArenaBoundaries(15f);
+        
+        string myId = (APIClient.Instance.CurrentUser != null) ? APIClient.Instance.CurrentUser.id : "PLAYER";
         
         // 1. Spawnegem al jugador humà amb el color triat
-        SpawnPlayer("PLAYER", new Vector2(-4, 0), true, playerColor);
+        SpawnPlayer(myId, new Vector2(-4, 0), true, playerColor);
         
         // 2. Spawnegem a la IA amb un color vermell/taronja per contrastar
         GameObject aiObj = Instantiate(aiPrefab, new Vector2(4, 0), Quaternion.identity);
@@ -301,11 +307,16 @@ public class GameManager : MonoBehaviour
     public void StartSoloMode(Color playerColor)
     {
         Debug.Log("Iniciant MODE INDIVIDUAL (Recollir monedes)");
+        CleanCurrentMatch();
+        CreateArenaBoundaries(15f);
+        
         isSoloMode = true;
         currentScore = 0;
         
+        string myId = (APIClient.Instance.CurrentUser != null) ? APIClient.Instance.CurrentUser.id : "LOCAL";
+        
         // Spawnegem al jugador al centre
-        SpawnPlayer("LOCAL", Vector2.zero, true, playerColor);
+        SpawnPlayer(myId, Vector2.zero, true, playerColor);
         
         // Spawnegem la primera moneda
         coinSpawner.SpawnCoin();
