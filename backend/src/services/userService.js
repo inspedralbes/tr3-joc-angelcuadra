@@ -59,11 +59,13 @@ class UserService {
     if (!user) throw new Error("Usuari no trobat");
 
     return {
-      id: user._id.toString(),
-      username: user.username,
-      wins: user.wins,
-      losses: user.losses,
-      coinsCollected: user.coinsCollected
+      user: {
+        id: user._id.toString(),
+        username: user.username,
+        wins: user.wins,
+        losses: user.losses,
+        coinsCollected: user.coinsCollected
+      }
     };
   }
 }

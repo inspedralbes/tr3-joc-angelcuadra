@@ -180,8 +180,9 @@ public class PlayerController : MonoBehaviour
 
         if (other.CompareTag("Wall") || other.CompareTag("Player"))
         {
-            // IGNORAR si és un dels meus murs (comprovem tota la llista, no només l'últim)
-            if (myWalls.Contains(other.gameObject)) return;
+            // IGNORAR si és el mur que estem creant ara mateix o el que acabem de tancar (per evitar morir al girar)
+            if (other.gameObject == wallCollider.gameObject) return;
+            if (previousWallCollider != null && other.gameObject == previousWallCollider.gameObject) return;
             
             // IGNORAR també si és el collider de la pròpia moto (per si de cas)
             if (other.gameObject == gameObject) return;

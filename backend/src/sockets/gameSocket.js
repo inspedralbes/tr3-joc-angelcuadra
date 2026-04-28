@@ -70,21 +70,24 @@ module.exports = (io) => {
       
       const match = matchRepository.getMatch(mId);
       if (match && match.status === 'playing') {
+        console.log(`Llista de jugadors a la partida: ${JSON.stringify(match.players)}`);
         const winnerId = match.players.find(id => id !== loserId);
-        console.log(`Guanyador determinat: ${winnerId} | Perdedor: ${loserId}`);
+        console.log(`ID Perdedor: ${loserId} | ID Guanyador Detectat: ${winnerId}`);
         
         matchRepository.updateMatchStatus(mId, 'finished');
         match.winnerId = winnerId;
         
         // Actualitzar estadístiques a MongoDB (Asíncron)
         try {
+          console.log(`Intentant actualitzar estadístiques per ${loserId} (Loss)...`);
           await userRepository.updateStats(loserId, false);
           if (winnerId) {
+            console.log(`Intentant actualitzar estadístiques per ${winnerId} (Win)...`);
             await userRepository.updateStats(winnerId, true);
-            console.log(`Estadístiques actualitzades per ${winnerId} (Win) i ${loserId} (Loss)`);
+            console.log(`Estadístiques actualitzades a la BD.`);
           }
         } catch (err) {
-          console.error("Error actualitzant estadístiques:", err);
+          console.error("Error actualitzant estadístiques a MongoDB:", err);
         }
 
         const endData = {

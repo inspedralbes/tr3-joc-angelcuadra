@@ -337,8 +337,20 @@ public class AuthUI : MonoBehaviour
 
         // Actualitzem les estadístiques en segon pla per quan tornem al lobby
         APIClient.Instance.GetProfile((success) => {
-            if (success) Debug.Log("Estadístiques actualitzades des del servidor.");
+            if (success) {
+                Debug.Log("Estadístiques actualitzades des del servidor.");
+                UpdateUserStatsUI();
+            }
         });
+    }
+
+    private void UpdateUserStatsUI()
+    {
+        if (APIClient.Instance.CurrentUser != null && userWinsLabel != null)
+        {
+            userWinsLabel.text = "Wins: " + APIClient.Instance.CurrentUser.wins;
+            userCoinsLabel.text = "Monedes: " + APIClient.Instance.CurrentUser.coinsCollected;
+        }
     }
 
     private void OnReturnLobbyClicked()
