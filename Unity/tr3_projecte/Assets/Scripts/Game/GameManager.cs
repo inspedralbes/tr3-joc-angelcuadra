@@ -89,13 +89,13 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log("<color=green>GameManager: S'ha trobat una TrainingArena! L'utilitzarem de base.</color>");
             arenaCenter = arena.transform.position;
-            cameraSize = 8.5f; // Zoom més agressiu perquè es vegin les motos
+            cameraSize = 20f; // Més marge per assegurar visibilitat
         }
         else
         {
             Debug.Log("<color=orange>GameManager: No s'ha trobat TrainingArena. Creant límits dinàmics.</color>");
-            CreateArenaBoundaries(15f); // Arena més petita i controlada
-            cameraSize = 18f;
+            CreateArenaBoundaries(15f);
+            cameraSize = 20f;
         }
 
         // 2. Configurem la càmera de forma FIXA per veure tot el camp
@@ -124,17 +124,30 @@ public class GameManager : MonoBehaviour
 
     private void SpawnBoundaryWall(Vector2 pos, Vector2 scale, string name)
     {
-        GameObject wall = new GameObject(name);
-        wall.transform.position = pos;
+        // Utilitzar el WallPrefab si està disponible, si no, crear un quadrat visible
+        GameObject wall;
+        GameObject wallPrefabLoaded = Resources.Load<GameObject>("WallPrefab");
+        
+        if (wallPrefabLoaded != null) {
+            wall = Instantiate(wallPrefabLoaded, pos, Quaternion.identity);
+            wall.name = name;
+        } else {
+            wall = new GameObject(name);
+            wall.transform.position = pos;
+        }
+
         wall.tag = "Wall";
-        var col = wall.AddComponent<BoxCollider2D>();
+        var col = wall.GetComponent<BoxCollider2D>();
+        if (col == null) col = wall.AddComponent<BoxCollider2D>();
         col.size = Vector2.one;
         wall.transform.localScale = new Vector3(scale.x, scale.y, 1f);
         
-        // Opcional: Afegir un color perquè es vegi el límit
-        var sr = wall.AddComponent<SpriteRenderer>();
-        sr.sprite = Resources.Load<Sprite>("UnityCommandLineInternal_UIPoint"); // Un sprite blanc per defecte
-        sr.color = new Color(1, 1, 1, 0.2f);
+        var sr = wall.GetComponent<SpriteRenderer>();
+        if (sr == null) sr = wall.AddComponent<SpriteRenderer>();
+        
+        // Color Cian Neó i capa de renderitzat superior
+        sr.color = new Color(0f, 1f, 1f, 0.8f); 
+        sr.sortingOrder = 10; // Per davant de tot!
     }
 
     private void HandleMatchStarted(string matchDataJson)
