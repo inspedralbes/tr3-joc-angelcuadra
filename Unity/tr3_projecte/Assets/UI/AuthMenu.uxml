@@ -32,7 +32,7 @@
 
             <ui:Label text="Tria el teu color de neó:" class="subtitle" />
             <ui:VisualElement name="ColorContainer" class="color-row">
-                <ui:Button name="ColorCyan" class="color-btn cyan-bg active-border" />
+                <ui:Button name="ColorCyan" class="color-btn cyan-bg" />
                 <ui:Button name="ColorYellow" class="color-btn yellow-bg" />
                 <ui:Button name="ColorMagenta" class="color-btn magenta-bg" />
                 <ui:Button name="ColorGreen" class="color-btn green-bg" />

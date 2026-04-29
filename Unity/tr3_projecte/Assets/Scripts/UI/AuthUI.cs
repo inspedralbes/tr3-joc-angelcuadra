@@ -284,11 +284,28 @@ public class AuthUI : MonoBehaviour
         if (btn != null)
         {
             colorButtons.Add(btn);
+            
+            // Estat inicial basat en el color seleccionat per defecte (Cyan)
+            if (color == selectedColor)
+            {
+                btn.AddToClassList("active-border");
+                btn.style.opacity = 1.0f;
+            }
+            else
+            {
+                btn.style.opacity = 0.5f;
+            }
+
             btn.clicked += () => 
             {
                 selectedColor = color;
-                // Feedback visual: opacitat
-                foreach (var b in colorButtons) b.style.opacity = 0.5f;
+                // Feedback visual: bordre i opacitat
+                foreach (var b in colorButtons)
+                {
+                    b.RemoveFromClassList("active-border");
+                    b.style.opacity = 0.5f;
+                }
+                btn.AddToClassList("active-border");
                 btn.style.opacity = 1.0f;
                 lobbyStatusText.text = "Color seleccionat!";
             };
