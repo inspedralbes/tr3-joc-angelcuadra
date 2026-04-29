@@ -11,6 +11,8 @@ public class AuthUI : MonoBehaviour
     // Elements de la UI
     private VisualElement authPanel;
     private VisualElement lobbyPanel;
+    private VisualElement hudPanel;
+    private VisualElement mainContainer;
     
     private TextField usernameInput;
     private TextField passwordInput;
@@ -26,7 +28,8 @@ public class AuthUI : MonoBehaviour
     private Label lobbyStatusText;
     
     private Label userWinsLabel;
-    private Label userCoinsLabel;
+    private Label hudCoinsLabel;
+    private Label finalCoinsLabel;
     private ScrollView matchList;
 
     // Elements de Game Over
@@ -49,6 +52,8 @@ public class AuthUI : MonoBehaviour
 
         authPanel = root.Q<VisualElement>("AuthPanel");
         lobbyPanel = root.Q<VisualElement>("LobbyPanel");
+        hudPanel = root.Q<VisualElement>("HUDPanel");
+        mainContainer = root.Q<VisualElement>("MainContainer");
 
         usernameInput = root.Q<TextField>("UsernameInput");
         passwordInput = root.Q<TextField>("PasswordInput");
@@ -70,7 +75,8 @@ public class AuthUI : MonoBehaviour
         soloModeButton.clicked += OnSoloModeClicked;
 
         userWinsLabel = root.Q<Label>("UserWinsLabel");
-        userCoinsLabel = root.Q<Label>("UserCoinsLabel");
+        hudCoinsLabel = root.Q<Label>("HUDCoinsLabel");
+        finalCoinsLabel = root.Q<Label>("FinalCoinsLabel");
         matchList = root.Q<ScrollView>("MatchList");
 
         gameOverPanel = root.Q<VisualElement>("GameOverPanel");
@@ -114,8 +120,11 @@ public class AuthUI : MonoBehaviour
 
     private void HandleMatchStarted(string data)
     {
-        // Amaguem el document sencer
-        uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        // Amaguem els panells principals i el fons fosc
+        authPanel.style.display = DisplayStyle.None;
+        lobbyPanel.style.display = DisplayStyle.None;
+        gameOverPanel.style.display = DisplayStyle.None;
+        mainContainer.RemoveFromClassList("bg-dark");
     }
 
     private void HandleMatchCreated(string data)
@@ -186,6 +195,8 @@ public class AuthUI : MonoBehaviour
     {
         authPanel.style.display = DisplayStyle.Flex;
         lobbyPanel.style.display = DisplayStyle.None;
+        hudPanel.style.display = DisplayStyle.None;
+        mainContainer.AddToClassList("bg-dark");
     }
 
     private void ShowLobbyPanel()
@@ -196,10 +207,11 @@ public class AuthUI : MonoBehaviour
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.Flex;
         gameOverPanel.style.display = DisplayStyle.None;
+        hudPanel.style.display = DisplayStyle.None;
+        mainContainer.AddToClassList("bg-dark");
         if (APIClient.Instance.CurrentUser != null)
         {
             userWinsLabel.text = "Wins: " + APIClient.Instance.CurrentUser.wins;
-            userCoinsLabel.text = "Monedes: " + APIClient.Instance.CurrentUser.coinsCollected;
         }
 
         SocketClient.Instance.Connect();
@@ -267,14 +279,14 @@ public class AuthUI : MonoBehaviour
     private void OnPlayAiClicked()
     {
         lobbyStatusText.text = "Iniciant partida contra la CPU...";
-        uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        HandleMatchStarted(""); // Reutilitzem la lògica d'amagar panells
         GameManager.Instance.StartOfflineAiMatch(selectedColor);
     }
 
     private void OnSoloModeClicked()
     {
         lobbyStatusText.text = "Iniciant mode individual...";
-        uiDocument.rootVisualElement.style.display = DisplayStyle.None;
+        HandleMatchStarted(""); // Amaguem panells
         GameManager.Instance.StartSoloMode(selectedColor);
     }
 
@@ -317,6 +329,18 @@ public class AuthUI : MonoBehaviour
         return selectedColor;
     }
 
+    public void UpdateHUDCoins(int coins)
+    {
+        if (hudCoinsLabel != null)
+            hudCoinsLabel.text = "Monedes: " + coins;
+    }
+
+    public void ShowHUD(bool show)
+    {
+        if (hudPanel != null)
+            hudPanel.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+    }
+
     public void ShowGameOver(string dataJson)
     {
         Debug.Log("Dades de Game Over rebudes: " + dataJson);
@@ -330,6 +354,8 @@ public class AuthUI : MonoBehaviour
         authPanel.style.display = DisplayStyle.None;
         lobbyPanel.style.display = DisplayStyle.None;
         gameOverPanel.style.display = DisplayStyle.Flex;
+        hudPanel.style.display = DisplayStyle.None;
+        mainContainer.AddToClassList("bg-dark");
 
         string myId = APIClient.Instance.CurrentUser?.id;
         string winnerId = (result != null && result.ContainsKey("winnerId")) ? result["winnerId"] : null;
@@ -352,6 +378,26 @@ public class AuthUI : MonoBehaviour
             winnerText.style.color = Color.white;
         }
 
+        // Mostrar monedes recollides si n'hi ha al missatge
+        if (result != null && result.ContainsKey("message") && result["message"].Contains("Monedes:"))
+        {
+            finalCoinsLabel.style.display = DisplayStyle.Flex;
+            string msg = result["message"];
+            int start = msg.IndexOf("Monedes:") + "Monedes:".Length;
+            finalCoinsLabel.text = "Monedes recollides: " + msg.Substring(start).Trim();
+            
+            // Si és mode solo, també podem canviar el títol del Game Over
+            if (result.ContainsKey("winnerId") && result["winnerId"] == "NONE")
+            {
+                winnerText.text = "HAS XOCAT!";
+                winnerText.style.color = new Color(1f, 0.5f, 0f); // Taronja
+            }
+        }
+        else
+        {
+            finalCoinsLabel.style.display = DisplayStyle.None;
+        }
+
         // Actualitzem les estadístiques en segon pla per quan tornem al lobby
         APIClient.Instance.GetProfile((success) => {
             if (success) {
@@ -366,7 +412,7 @@ public class AuthUI : MonoBehaviour
         if (APIClient.Instance.CurrentUser != null && userWinsLabel != null)
         {
             userWinsLabel.text = "Wins: " + APIClient.Instance.CurrentUser.wins;
-            userCoinsLabel.text = "Monedes: " + APIClient.Instance.CurrentUser.coinsCollected;
+            Debug.Log("UI actualitzada: Wins = " + APIClient.Instance.CurrentUser.wins);
         }
     }
 
@@ -381,7 +427,6 @@ public class AuthUI : MonoBehaviour
         if (APIClient.Instance.CurrentUser != null)
         {
             userWinsLabel.text = "Wins: " + APIClient.Instance.CurrentUser.wins;
-            userCoinsLabel.text = "Monedes: " + APIClient.Instance.CurrentUser.coinsCollected;
         }
     }
 }

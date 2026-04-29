@@ -68,6 +68,14 @@ class UserService {
       }
     };
   }
+
+  async addCoins(token, amount) {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    await userRepository.addCoins(decoded.id, amount);
+    
+    // Retornem el perfil actualitzat per estalviar una crida extra
+    return await this.getProfile(token);
+  }
 }
 
 module.exports = new UserService();

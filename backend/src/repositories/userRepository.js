@@ -32,8 +32,13 @@ class UserRepository {
   async addCoins(id, amount) {
     const user = await User.findById(id);
     if (user) {
-      user.coinsCollected += amount;
+      const coinsToAdd = parseInt(amount) || 0;
+      console.log(`[Stats] Afegint ${coinsToAdd} monedes a l'usuari ${user.username} (ID: ${id}). Actuals: ${user.coinsCollected}`);
+      user.coinsCollected = (user.coinsCollected || 0) + coinsToAdd;
       await user.save();
+      console.log(`[Stats] Nou total per a ${user.username}: ${user.coinsCollected}`);
+    } else {
+      console.error(`[Stats] No s'ha trobat l'usuari amb ID: ${id}`);
     }
   }
 }

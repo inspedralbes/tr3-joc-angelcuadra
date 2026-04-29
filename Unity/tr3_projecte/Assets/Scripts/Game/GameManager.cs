@@ -231,9 +231,14 @@ public class GameManager : MonoBehaviour
 
         if (isSoloMode)
         {
-            var soloResult = new { winnerId = "NONE", loserId = pId, message = "HAS XOCAT!\nMonedes: " + currentScore };
-            AuthUI.Instance.ShowGameOver(JsonConvert.SerializeObject(soloResult));
-            isSoloMode = false;
+            isSoloMode = false; // El posem a false abans per evitar crides duplicades
+            
+            APIClient.Instance.AddCoins(currentScore, (success) => {
+                if (success) Debug.Log("Monedes guardades correctament al servidor.");
+                
+                var soloResult = new { winnerId = "NONE", loserId = pId, message = "HAS XOCAT!\nMonedes: " + currentScore };
+                AuthUI.Instance.ShowGameOver(JsonConvert.SerializeObject(soloResult));
+            });
             return;
         }
 
@@ -274,6 +279,7 @@ public class GameManager : MonoBehaviour
             Destroy(coin.gameObject);
         }
 
+        AuthUI.Instance?.ShowHUD(false);
         activePlayers.Clear();
         currentScore = 0;
     }
@@ -320,12 +326,19 @@ public class GameManager : MonoBehaviour
         
         // Spawnegem la primera moneda
         coinSpawner.SpawnCoin();
+        
+        // Inicialitzem el HUD de monedes
+        AuthUI.Instance.ShowHUD(true);
+        AuthUI.Instance.UpdateHUDCoins(0);
     }
 
     public void CoinCollected()
     {
         currentScore++;
         Debug.Log("Moneda recollida! Puntuació: " + currentScore);
+        
+        // Actualitzem el HUD
+        AuthUI.Instance.UpdateHUDCoins(currentScore);
         
         // Spawnegem la següent moneda
         coinSpawner.SpawnCoin();
